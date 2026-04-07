@@ -1,7 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { requireDashboardUser } from "@/lib/data";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Expert dashboard",
+  description:
+    "Manage your Intellink subscription, offerings, payouts, and incoming client activity from the expert dashboard.",
+  path: "/dashboard",
+  noIndex: true,
+});
 
 export default async function DashboardLayout({
   children,

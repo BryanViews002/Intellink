@@ -1,5 +1,15 @@
+import type { Metadata } from "next";
 import { getAdminStats, getCurrentAdminContext } from "@/lib/data";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Admin",
+  description:
+    "Review Intellink subscriptions, monthly revenue, and expert transaction activity from the admin control room.",
+  path: "/admin",
+  noIndex: true,
+});
 
 export default async function AdminPage() {
   await getCurrentAdminContext();

@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyKorapayCharge } from "@/lib/korapay";
 import { supabaseAdmin } from "@/lib/supabase";
+import { buildMetadata } from "@/lib/seo";
 
 type PaymentSuccessPageProps = {
   searchParams: {
@@ -11,6 +13,13 @@ type PaymentSuccessPageProps = {
 };
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = buildMetadata({
+  title: "Payment status",
+  description:
+    "Review the latest status of your Intellink payment confirmation.",
+  path: "/payment/success",
+  noIndex: true,
+});
 
 export default async function PaymentSuccessPage({
   searchParams,

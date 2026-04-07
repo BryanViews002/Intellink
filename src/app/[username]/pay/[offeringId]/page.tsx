@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckoutForm } from "@/components/public/CheckoutForm";
 import { getPublicOffering } from "@/lib/data";
+import { buildMetadata, truncateDescription } from "@/lib/seo";
 
 type CheckoutPageProps = {
   params: {
@@ -66,4 +68,29 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
       />
     </main>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: CheckoutPageProps): Promise<Metadata> {
+  const payload = await getPublicOffering(params.username, params.offeringId);
+
+  if (!payload) {
+    return buildMetadata({
+      title: "Offering not found",
+      description: "The Intellink offering you requested could not be found.",
+      path: `/${params.username}/pay/${params.offeringId}`,
+      noIndex: true,
+    });
+  }
+
+  return buildMetadata({
+    title: `${String(payload.offering.title)} by ${payload.expert.name}`,
+    description: truncateDescription(
+      String(payload.offering.description),
+      `${payload.expert.name} is selling ${String(payload.offering.title)} on Intellink.`,
+    ),
+    path: `/${params.username}/pay/${params.offeringId}`,
+    noIndex: true,
+  });
 }

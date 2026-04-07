@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicProfile } from "@/lib/data";
 import { OFFERING_TYPE_OPTIONS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
+import { absoluteUrl, buildMetadata, truncateDescription } from "@/lib/seo";
 
 type PublicProfilePageProps = {
   params: {
@@ -28,9 +30,38 @@ export default async function PublicProfilePage({
     expert.subscription_status !== "active"
       ? "Their subscription is inactive, so the profile is hidden from client purchases until they renew."
       : "Their payout details are still being verified, so purchases are temporarily disabled.";
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: expert.name,
+    url: absoluteUrl(`/${expert.username}`),
+    description: expert.bio || undefined,
+    image: expert.profile_photo || undefined,
+    hasOfferCatalog:
+      offerings.length > 0
+        ? {
+            "@type": "OfferCatalog",
+            name: `${expert.name} offerings`,
+            itemListElement: offerings.map((offering) => ({
+              "@type": "Offer",
+              name: String(offering.title),
+              description: String(offering.description),
+              price: Number(offering.price),
+              priceCurrency: "NGN",
+              url: absoluteUrl(`/${expert.username}/pay/${String(offering.id)}`),
+            })),
+          }
+        : undefined,
+  };
 
   return (
     <main className="pb-12 sm:pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(personJsonLd),
+        }}
+      />
       <header className="section-shell pt-6">
         <div className="panel overflow-hidden bg-slate-950 px-5 py-5 text-white sm:px-6 md:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -150,4 +181,53 @@ export default async function PublicProfilePage({
       </section>
     </main>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: PublicProfilePageProps): Promise<Metadata> {
+  const profile = await getPublicProfile(params.username);
+
+  if (!profile) {
+    return buildMetadata({
+      title: "Expert not found",
+      description: "The expert profile you requested could not be found on Intellink.",
+      path: `/${params.username}`,
+      noIndex: true,
+    });
+  }
+
+  const { expert } = profile;
+  const noIndex =
+    expert.subscription_status !== "active" ||
+    !expert.korapay_recipient_verified;
+  const description = truncateDescription(
+    expert.bio,
+    `${expert.name} sells paid expert knowledge, sessions, and resources on Intellink.`,
+  );
+
+  return {
+    ...buildMetadata({
+      title: `${expert.name} (@${expert.username})`,
+      description,
+      path: `/${expert.username}`,
+      noIndex,
+    }),
+    openGraph: {
+      title: `${expert.name} (@${expert.username})`,
+      description,
+      url: absoluteUrl(`/${expert.username}`),
+      siteName: "Intellink",
+      locale: "en_US",
+      type: "profile",
+      images: [
+        {
+          url: absoluteUrl("/opengraph-image"),
+          width: 1200,
+          height: 630,
+          alt: "Intellink preview",
+        },
+      ],
+    },
+  };
 }

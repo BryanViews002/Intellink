@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Payment failed",
+  description:
+    "This Intellink payment did not complete successfully. Return to the previous page and try again.",
+  path: "/payment/failed",
+  noIndex: true,
+});
 
 export default function PaymentFailedPage() {
   return (

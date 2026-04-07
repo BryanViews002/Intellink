@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
+import { absoluteUrl, siteConfig } from "@/lib/seo";
 
 const steps = [
   {
@@ -22,8 +23,31 @@ const steps = [
 ];
 
 export default function HomePage() {
+  const homeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: siteConfig.name,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: absoluteUrl("/"),
+    description: siteConfig.description,
+    offers: Object.values(SUBSCRIPTION_PLANS).map((plan) => ({
+      "@type": "Offer",
+      name: `${plan.name} plan`,
+      price: plan.price,
+      priceCurrency: "NGN",
+      category: "subscription",
+    })),
+  };
+
   return (
     <main className="page-enter pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(homeJsonLd),
+        }}
+      />
       <header className="section-shell pt-6">
         <div className="panel motion-shell overflow-hidden bg-slate-950 text-white">
           <AmbientBackdrop variant="hero" />
