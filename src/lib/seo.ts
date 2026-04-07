@@ -7,15 +7,17 @@ export const siteConfig = {
   shortName: "Intellink",
   title: "Get paid for what you know",
   description:
-    "Intellink is a premium SaaS platform where experts sell paid Q&A, sessions, and digital resources with subscription-first access and instant payouts.",
+    "Intellink is a premium marketplace where clients discover experts and buy paid Q&A, sessions, and digital resources, while only experts subscribe to use the platform.",
   keywords: [
     "Intellink",
     "expert platform",
+    "discover experts",
     "knowledge monetization",
     "sell consultations online",
     "paid Q&A platform",
     "book paid sessions",
     "sell digital resources",
+    "client marketplace",
     "expert subscriptions",
     "creator SaaS",
     "professional services platform",

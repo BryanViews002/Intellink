@@ -114,3 +114,21 @@ export interface NigerianBank {
   code: string;
   country: string;
 }
+
+export interface MarketplaceExpert {
+  id: string;
+  name: string;
+  username: string;
+  bio: string | null;
+  profile_photo: string | null;
+}
+
+export interface MarketplaceListing {
+  id: string;
+  type: OfferingType;
+  title: string;
+  description: string;
+  price: number;
+  created_at: string;
+  expert: MarketplaceExpert;
+}

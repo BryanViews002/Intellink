@@ -65,12 +65,15 @@ export default async function PublicProfilePage({
       <header className="section-shell pt-6">
         <div className="panel overflow-hidden bg-slate-950 px-5 py-5 text-white sm:px-6 md:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/" className="button-secondary">
-              Home
-            </Link>
-            <p className="text-sm font-medium text-slate-300">
-              @{expert.username}
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/" className="button-secondary">
+                Home
+              </Link>
+              <Link href="/discover" className="button-secondary">
+                Discover
+              </Link>
+            </div>
+            <p className="text-sm font-medium text-slate-300">@{expert.username}</p>
           </div>
         </div>
       </header>

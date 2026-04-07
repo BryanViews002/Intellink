@@ -51,6 +51,9 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         <Link href={`/${params.username}`} className="button-secondary">
           Back to profile
         </Link>
+        <Link href="/discover" className="button-secondary">
+          Browse experts
+        </Link>
       </div>
 
       <CheckoutForm

@@ -1,28 +1,32 @@
 import Link from "next/link";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
+import { getMarketplaceData } from "@/lib/data";
 import { formatCurrency } from "@/lib/format";
-import { absoluteUrl, siteConfig } from "@/lib/seo";
+import { absoluteUrl, siteConfig, truncateDescription } from "@/lib/seo";
 
 const steps = [
   {
-    title: "Create your expert profile",
+    title: "Experts publish premium offers",
     description:
-      "Set up a clean public page with your positioning, credibility, and paid offers.",
+      "Experts create a public profile, stay active on subscription, and list paid Q&A, sessions, or digital resources.",
   },
   {
-    title: "Publish what clients can buy",
+    title: "Clients browse what they need",
     description:
-      "Sell private Q&A, live sessions, or digital resources from one premium link.",
+      "Clients come to Intellink to discover live experts, compare offers, and choose the help that fits them.",
   },
   {
-    title: "Earn directly from clients",
+    title: "Only experts subscribe",
     description:
-      "Intellink charges a subscription for access. Your clients pay you directly.",
+      "Experts pay Intellink monthly. Clients never subscribe, they just pay directly for the offer they want.",
   },
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const marketplace = await getMarketplaceData({ limit: 3 });
   const homeJsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -58,6 +62,9 @@ export default function HomePage() {
               </p>
             </div>
             <nav className="rise-in delay-1 flex flex-wrap items-center gap-3 text-sm">
+              <Link href="/discover" className="button-secondary">
+                Discover
+              </Link>
               <Link href="/pricing" className="button-secondary">
                 Pricing
               </Link>
@@ -73,31 +80,32 @@ export default function HomePage() {
           <div className="relative z-10 grid gap-10 px-6 pb-14 pt-4 md:grid-cols-[1.15fr,0.85fr] md:px-8 md:pb-20 md:pt-6">
             <div className="max-w-3xl">
               <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur-sm">
-                Premium platform for experts and professionals
+                Experts subscribe. Clients browse and buy freely.
               </p>
               <h1 className="rise-in delay-2 mt-6 text-4xl font-semibold leading-[1.02] text-white sm:text-5xl md:text-7xl">
                 Get paid for
                 <span className="text-sheen block">what you know.</span>
               </h1>
               <p className="rise-in delay-3 mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                Intellink gives experts a premium page, paid offerings, and direct
-                client payments. No free tier. No trial. No transaction cut.
+                Intellink gives experts a premium storefront and gives clients a
+                clean way to discover and buy trusted expertise. Experts are the
+                only ones who subscribe. Clients just browse and pay.
               </p>
 
               <div className="rise-in delay-4 mt-10 button-row">
                 <Link href="/register" className="button-gold button-block-mobile">
                   Start earning
                 </Link>
-                <Link href="/pricing" className="button-secondary button-block-mobile">
-                  See pricing
+                <Link href="/discover" className="button-secondary button-block-mobile">
+                  Browse experts
                 </Link>
               </div>
 
               <div className="mt-12 grid gap-4 sm:grid-cols-3">
                 <div className="metric-card rise-in delay-3">
-                  <p className="text-sm text-slate-300">Subscription-based</p>
+                  <p className="text-sm text-slate-300">Client access</p>
                   <p className="mt-2 text-2xl font-semibold text-white">
-                    Straight premium
+                    No subscription
                   </p>
                 </div>
                 <div className="metric-card rise-in delay-4">
@@ -107,8 +115,10 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="metric-card rise-in delay-5">
-                  <p className="text-sm text-slate-300">Offer types</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">3 ways to sell</p>
+                  <p className="text-sm text-slate-300">Marketplace</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    Live discovery
+                  </p>
                 </div>
               </div>
             </div>
@@ -133,11 +143,11 @@ export default function HomePage() {
                 </div>
                 <div className="mt-6 rounded-[1.5rem] bg-amber-300 px-5 py-4 text-slate-950">
                   <p className="text-sm font-semibold uppercase tracking-[0.18em]">
-                    Premium rule
+                    Marketplace rule
                   </p>
                   <p className="mt-2 text-sm leading-7">
-                    If an expert subscription goes inactive, the public profile is
-                    hidden and all pay buttons shut off automatically.
+                    Only subscribed experts stay visible in the marketplace. Clients
+                    can browse freely, but inactive experts disappear automatically.
                   </p>
                 </div>
               </div>
@@ -168,6 +178,76 @@ export default function HomePage() {
       </section>
 
       <section className="section-shell mt-16">
+        <div className="stack-actions gap-6">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              Client marketplace
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
+              Browse live offers from subscribed experts
+            </h2>
+          </div>
+          <div className="max-w-2xl">
+            <p className="text-base leading-8 text-slate-600 sm:text-lg">
+              Intellink is not just a tool for experts anymore. Clients can come
+              in, discover offers, compare expertise, and pay for the exact help
+              they want without creating a subscription.
+            </p>
+            <div className="mt-5 button-row">
+              <Link href="/discover" className="button-primary button-block-mobile">
+                Explore marketplace
+              </Link>
+              <Link href="/pricing" className="button-secondary button-block-mobile">
+                Expert pricing
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {marketplace.listings.length > 0 ? (
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {marketplace.listings.map((listing, index) => (
+              <article
+                key={listing.id}
+                className={`panel rise-in p-6 sm:p-7 ${index % 2 === 0 ? "float-card" : "float-card-alt"}`}
+              >
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+                  {OFFERING_TYPE_OPTIONS[listing.type].shortName}
+                </p>
+                <h3 className="mt-3 text-2xl font-semibold text-slate-950">
+                  {listing.title}
+                </h3>
+                <p className="mt-4 text-sm leading-7 text-slate-600">
+                  {truncateDescription(listing.description, listing.description, 130)}
+                </p>
+                <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-950">
+                    {listing.expert.name}
+                  </p>
+                  <p className="text-sm text-slate-500">@{listing.expert.username}</p>
+                </div>
+                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-2xl font-semibold text-slate-950">
+                    {formatCurrency(listing.price)}
+                  </p>
+                  <Link
+                    href={`/${listing.expert.username}/pay/${listing.id}`}
+                    className="button-gold button-block-mobile"
+                  >
+                    Buy now
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="panel mt-8 px-6 py-10 text-center text-slate-500 sm:px-8 sm:py-12">
+            Live client-facing offers will appear here as soon as experts publish.
+          </div>
+        )}
+      </section>
+
+      <section className="section-shell mt-16">
         <div className="panel motion-shell overflow-hidden bg-slate-950 text-white">
           <AmbientBackdrop variant="pricing" />
           <div className="relative z-10 grid gap-8 px-6 py-10 md:grid-cols-[0.9fr,1.1fr] md:px-10 md:py-12">
@@ -180,7 +260,8 @@ export default function HomePage() {
               </h2>
               <p className="mt-4 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
                 Experts subscribe monthly to stay visible, keep offerings live,
-                and continue earning from clients.
+                and continue earning from clients. Clients never pay for platform
+                access, only for expert offers.
               </p>
             </div>
 

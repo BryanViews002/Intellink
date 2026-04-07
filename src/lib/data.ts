@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth";
 import { calculateDaysRemaining } from "@/lib/format";
 import { listNigerianBanks } from "@/lib/korapay";
+import { type MarketplaceListing, type OfferingType } from "@/types";
 
 export async function requireDashboardUser() {
   const supabase = createServerSupabaseClient();
@@ -214,6 +215,121 @@ export async function getPublicOffering(username: string, offeringId: string) {
   return {
     expert: profile.expert,
     offering,
+  };
+}
+
+type MarketplaceOptions = {
+  query?: string;
+  type?: OfferingType | "all";
+  limit?: number;
+};
+
+export async function getMarketplaceData({
+  query = "",
+  type = "all",
+  limit = 24,
+}: MarketplaceOptions = {}) {
+  let data: Array<Record<string, unknown>> | null = null;
+
+  try {
+    const result = await Promise.race([
+      supabaseAdmin
+        .from("offerings")
+        .select(
+          `
+            id,
+            type,
+            title,
+            description,
+            price,
+            created_at,
+            users!inner(
+              id,
+              name,
+              username,
+              bio,
+              profile_photo,
+              subscription_status,
+              korapay_recipient_verified
+            )
+          `,
+        )
+        .eq("is_active", true)
+        .eq("users.subscription_status", "active")
+        .eq("users.korapay_recipient_verified", true)
+        .order("created_at", { ascending: false })
+        .limit(Math.max(limit, 48)),
+      new Promise<{ data: null }>((resolve) => {
+        setTimeout(() => resolve({ data: null }), 4000);
+      }),
+    ]);
+
+    data = result.data as Array<Record<string, unknown>> | null;
+  } catch (error) {
+    console.error("Failed to load marketplace data:", error);
+  }
+
+  const listings: MarketplaceListing[] = (data ?? [])
+    .map((item) => {
+      const expert = Array.isArray(item.users) ? item.users[0] : item.users;
+
+      if (!expert) {
+        return null;
+      }
+
+      return {
+        id: String(item.id),
+        type: item.type as OfferingType,
+        title: String(item.title),
+        description: String(item.description),
+        price: Number(item.price),
+        created_at: String(item.created_at),
+        expert: {
+          id: String(expert.id),
+          name: String(expert.name),
+          username: String(expert.username),
+          bio: expert.bio ? String(expert.bio) : null,
+          profile_photo: expert.profile_photo ? String(expert.profile_photo) : null,
+        },
+      };
+    })
+    .filter((item): item is MarketplaceListing => Boolean(item));
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const filtered = listings.filter((listing) => {
+    if (type !== "all" && listing.type !== type) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const haystack = [
+      listing.title,
+      listing.description,
+      listing.expert.name,
+      listing.expert.username,
+      listing.expert.bio ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(normalizedQuery);
+  });
+
+  const experts = new Map(
+    listings.map((listing) => [listing.expert.id, listing.expert]),
+  );
+
+  return {
+    query: query.trim(),
+    type,
+    totalExperts: experts.size,
+    totalListings: listings.length,
+    listings: filtered.slice(0, limit),
+    featuredExperts: Array.from(experts.values()).slice(0, 6),
   };
 }
 
