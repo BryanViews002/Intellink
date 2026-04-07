@@ -1,5 +1,3 @@
-"use client";
-
 type AmbientBackdropProps = {
   variant?: "hero" | "pricing" | "dashboard" | "bank";
 };

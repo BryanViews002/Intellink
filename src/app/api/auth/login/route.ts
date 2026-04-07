@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
-import { apiError, apiResponse, syncSubscriptionStatus, validateRequired } from "@/lib/auth";
-import { supabaseAuthServer } from "@/lib/supabase";
+import {
+  apiError,
+  apiResponse,
+  normalizeUsername,
+  syncSubscriptionStatus,
+  validateRequired,
+} from "@/lib/auth";
+import { supabaseAdmin, supabaseAuthServer } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +19,57 @@ export async function POST(request: NextRequest) {
       return apiError(`Missing fields: ${missing.join(", ")}`);
     }
 
-    const email = body.email.trim().toLowerCase();
+    const identifier = body.email.trim().toLowerCase();
     const password = body.password;
+    let email = identifier;
+
+    if (!identifier.includes("@")) {
+      const username = normalizeUsername(identifier);
+      const { data: profileByUsername } = await supabaseAdmin
+        .from("users")
+        .select("email")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (!profileByUsername?.email) {
+        return apiError("No account found for that email or username.", 404);
+      }
+
+      email = String(profileByUsername.email).trim().toLowerCase();
+    }
 
     const { data, error } = await supabaseAuthServer.auth.signInWithPassword({
       email,
       password,
     });
 
+    if (error) {
+      console.error("Supabase login rejected credentials:", {
+        identifier,
+        resolvedEmail: email,
+        message: error.message,
+        status: error.status,
+      });
+    }
+
     if (error || !data.user || !data.session) {
+      const { data: profileByEmail } = await supabaseAdmin
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!profileByEmail) {
+        return apiError(
+          "No account found for that email or username in this app.",
+          404,
+        );
+      }
+
+      if (error?.message?.toLowerCase().includes("email not confirmed")) {
+        return apiError("Your email is not confirmed yet.", 403);
+      }
+
       return apiError("Invalid email or password", 401);
     }
 

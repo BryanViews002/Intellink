@@ -23,7 +23,7 @@ const steps = [
   },
 ];
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function HomePage() {
   const marketplace = await getMarketplaceData({ limit: 3 });

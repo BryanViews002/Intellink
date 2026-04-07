@@ -94,13 +94,16 @@ export default function LoginPage() {
             }}
           >
             <label className="block space-y-2">
-              <span className="text-sm font-semibold text-slate-700">Email</span>
+              <span className="text-sm font-semibold text-slate-700">
+                Email or username
+              </span>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+                placeholder="you@example.com or @yourname"
               />
             </label>
 

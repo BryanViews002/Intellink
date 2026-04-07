@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { createServerSupabaseClient, supabaseAdmin } from "@/lib/supabase";
 import {
   getUserProfile,
@@ -224,47 +225,60 @@ type MarketplaceOptions = {
   limit?: number;
 };
 
+const getMarketplaceSnapshot = unstable_cache(
+  async (limit: number) => {
+    const { data } = await supabaseAdmin
+      .from("offerings")
+      .select(
+        `
+          id,
+          type,
+          title,
+          description,
+          price,
+          created_at,
+          users!inner(
+            id,
+            name,
+            username,
+            bio,
+            profile_photo,
+            subscription_status,
+            korapay_recipient_verified
+          )
+        `,
+      )
+      .eq("is_active", true)
+      .eq("users.subscription_status", "active")
+      .eq("users.korapay_recipient_verified", true)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    return data ?? [];
+  },
+  ["marketplace-snapshot"],
+  {
+    revalidate: 300,
+  },
+);
+
 export async function getMarketplaceData({
   query = "",
   type = "all",
   limit = 24,
 }: MarketplaceOptions = {}) {
   let data: Array<Record<string, unknown>> | null = null;
+  const snapshotLimit = Math.max(limit, 48);
 
   try {
     const result = await Promise.race([
-      supabaseAdmin
-        .from("offerings")
-        .select(
-          `
-            id,
-            type,
-            title,
-            description,
-            price,
-            created_at,
-            users!inner(
-              id,
-              name,
-              username,
-              bio,
-              profile_photo,
-              subscription_status,
-              korapay_recipient_verified
-            )
-          `,
-        )
-        .eq("is_active", true)
-        .eq("users.subscription_status", "active")
-        .eq("users.korapay_recipient_verified", true)
-        .order("created_at", { ascending: false })
-        .limit(Math.max(limit, 48)),
-      new Promise<{ data: null }>((resolve) => {
-        setTimeout(() => resolve({ data: null }), 4000);
+      getMarketplaceSnapshot(snapshotLimit),
+      new Promise<Array<Record<string, unknown>>>((resolve) => {
+        setTimeout(() => resolve([]), 2500);
       }),
     ]);
 
-    data = result.data as Array<Record<string, unknown>> | null;
+    data = result;
   } catch (error) {
     console.error("Failed to load marketplace data:", error);
   }
