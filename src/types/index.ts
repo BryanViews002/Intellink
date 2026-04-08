@@ -9,10 +9,12 @@ export type SubscriptionStatus =
 export type OfferingType = "qa" | "session" | "resource";
 export type TransactionStatus = "pending" | "success" | "failed";
 export type PayoutStatus = "pending" | "success" | "failed";
+export type ExpertTrustStatus = "good" | "restricted";
 
 export type TransactionContext = {
   questionText?: string;
   preferredTime?: string;
+  reviewToken?: string;
 };
 
 export interface User {
@@ -30,6 +32,9 @@ export interface User {
   bank_account: string | null;
   account_name: string | null;
   korapay_recipient_verified: boolean;
+  trust_status: ExpertTrustStatus;
+  trust_flagged_at: string | null;
+  trust_reason: string | null;
   created_at: string;
 }
 
@@ -96,6 +101,22 @@ export interface Rating {
   stars: number;
   comment: string | null;
   created_at: string;
+}
+
+export interface ExpertReviewSummary {
+  averageStars: number;
+  totalReviews: number;
+  oneStarReviewsThisWeek: number;
+}
+
+export interface ExpertReview {
+  id: string;
+  stars: number;
+  comment: string | null;
+  created_at: string;
+  client_name: string;
+  offering_title: string;
+  offering_type: OfferingType;
 }
 
 export interface Payout {

@@ -2,7 +2,12 @@ import Link from "next/link";
 import { AnswerQuestionForm } from "@/components/dashboard/AnswerQuestionForm";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { getDashboardData, requireVerifiedDashboardUser } from "@/lib/data";
-import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatRating,
+} from "@/lib/format";
 
 export default async function DashboardPage() {
   const { profile } = await requireVerifiedDashboardUser();
@@ -17,6 +22,22 @@ export default async function DashboardPage() {
 
   return (
     <main className="section-shell page-enter space-y-8 py-6 sm:py-8">
+      {dashboard.profile.trust_status === "restricted" ? (
+        <section className="panel border border-rose-200 bg-rose-50 px-6 py-6 sm:px-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-600">
+            Trust restriction active
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-950">
+            Your profile has been removed from new client purchases.
+          </h2>
+          <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600">
+            Intellink automatically restricted your expert page after receiving 10
+            one-star reviews in 7 days. Your dashboard is still available, but
+            discovery and new purchases are blocked while trust issues are reviewed.
+          </p>
+        </section>
+      ) : null}
+
       <section className="grid gap-5 lg:grid-cols-[1.2fr,0.8fr]">
         <article className="panel motion-shell rise-in overflow-hidden bg-slate-950 p-6 text-white sm:p-8">
           <AmbientBackdrop variant="dashboard" />
@@ -70,7 +91,7 @@ export default async function DashboardPage() {
         </article>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-3">
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <article className="panel rise-in delay-1 p-5 sm:p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
             Unanswered questions
@@ -93,6 +114,18 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">
             {dashboard.transactions.length}
+          </p>
+        </article>
+        <article className="panel rise-in delay-4 p-5 sm:p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+            Client rating
+          </p>
+          <p className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">
+            {formatRating(dashboard.reviewSummary.averageStars)}
+          </p>
+          <p className="mt-3 text-sm text-slate-500">
+            {dashboard.reviewSummary.totalReviews} review
+            {dashboard.reviewSummary.totalReviews === 1 ? "" : "s"} total
           </p>
         </article>
       </section>
@@ -133,6 +166,54 @@ export default async function DashboardPage() {
         </div>
 
         <div className="space-y-5">
+          <section className="panel rise-in delay-2 p-5 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+                  Client reviews
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                  Trust feedback
+                </h2>
+              </div>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600">
+                {dashboard.reviewSummary.oneStarReviewsThisWeek} one-star review
+                {dashboard.reviewSummary.oneStarReviewsThisWeek === 1 ? "" : "s"} this week
+              </div>
+            </div>
+            <div className="mt-5 space-y-4">
+              {dashboard.reviews.length > 0 ? (
+                dashboard.reviews.map((review) => (
+                  <article
+                    key={review.id}
+                    className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition duration-500 hover:-translate-y-1 hover:bg-white"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-950">
+                          {review.client_name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {review.offering_title}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {review.stars} star{review.stars === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      {review.comment || "This client left a star rating without a written note."}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">
+                  No reviews yet. Client feedback will start showing here after fulfilled purchases.
+                </p>
+              )}
+            </div>
+          </section>
+
           <section className="panel rise-in delay-2 p-5 sm:p-6">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
               Sessions

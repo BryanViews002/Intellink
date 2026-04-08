@@ -173,3 +173,26 @@ export function hasVerifiedBankDetails(profile: {
       profile.account_name,
   );
 }
+
+export function isExpertTrusted(profile: {
+  trust_status?: string | null;
+}) {
+  return (profile.trust_status ?? "good") === "good";
+}
+
+export function canExpertAcceptPurchases(
+  profile: {
+    subscription_status?: string | null;
+    korapay_recipient_verified?: boolean | null;
+    bank_code?: string | null;
+    bank_account?: string | null;
+    account_name?: string | null;
+    trust_status?: string | null;
+  },
+) {
+  return (
+    profile.subscription_status === "active" &&
+    hasVerifiedBankDetails(profile) &&
+    isExpertTrusted(profile)
+  );
+}

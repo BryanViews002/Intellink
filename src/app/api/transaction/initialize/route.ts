@@ -2,10 +2,11 @@ import { NextRequest } from "next/server";
 import {
   apiError,
   apiResponse,
-  hasVerifiedBankDetails,
+  canExpertAcceptPurchases,
   validateRequired,
 } from "@/lib/auth";
 import { initializeKorapayPayment, buildTransactionCheckout } from "@/lib/korapay";
+import { createReviewToken } from "@/lib/reviews";
 import { supabaseAdmin } from "@/lib/supabase";
 import { type OfferingType, type TransactionContext } from "@/types";
 
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { data: expert } = await supabaseAdmin
       .from("users")
       .select(
-        "id, name, email, subscription_status, bank_code, bank_account, account_name, korapay_recipient_verified",
+        "id, name, email, subscription_status, bank_code, bank_account, account_name, korapay_recipient_verified, trust_status",
       )
       .eq("id", offering.user_id)
       .single();
@@ -55,14 +56,18 @@ export async function POST(request: NextRequest) {
       return apiError("This expert is currently unavailable", 400);
     }
 
-    if (!hasVerifiedBankDetails(expert)) {
+    if (!canExpertAcceptPurchases(expert)) {
       return apiError(
-        "This expert has not completed payout setup yet.",
+        expert.trust_status === "restricted"
+          ? "This expert is currently unavailable while Intellink reviews recent client feedback."
+          : "This expert has not completed payout setup yet.",
         400,
       );
     }
 
-    const context: TransactionContext = {};
+    const context: TransactionContext = {
+      reviewToken: createReviewToken(),
+    };
 
     if (offering.type === "qa") {
       if (!body.question_text?.trim()) {

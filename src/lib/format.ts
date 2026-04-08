@@ -45,3 +45,11 @@ export function calculateDaysRemaining(date: string | null) {
 
   return Math.max(0, remaining);
 }
+
+export function formatRating(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "New";
+  }
+
+  return value.toFixed(1);
+}

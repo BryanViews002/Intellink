@@ -19,11 +19,13 @@ type OfferingRecord = {
 
 type OfferingsManagerProps = {
   plan: "starter" | "pro";
+  trustStatus: "good" | "restricted";
   offerings: OfferingRecord[];
 };
 
 export function OfferingsManager({
   plan,
+  trustStatus,
   offerings: initialOfferings,
 }: OfferingsManagerProps) {
   const [offerings, setOfferings] = useState(initialOfferings);
@@ -38,6 +40,7 @@ export function OfferingsManager({
   const existingTypes = new Set(offerings.map((offering) => offering.type));
   const starterLock =
     plan === "starter" && existingTypes.size > 0 && !existingTypes.has(type);
+  const publishingBlocked = trustStatus === "restricted";
 
   return (
     <div className="space-y-8">
@@ -46,6 +49,13 @@ export function OfferingsManager({
         onSubmit={(event) => {
           event.preventDefault();
           setMessage("");
+
+          if (publishingBlocked) {
+            setMessage(
+              "Your expert profile is currently restricted, so publishing is disabled.",
+            );
+            return;
+          }
 
           startTransition(async () => {
             let fileUrl: string | null = null;
@@ -194,13 +204,15 @@ export function OfferingsManager({
 
         <div className="stack-actions">
           <span className="text-sm text-slate-500">
-            {starterLock
+            {publishingBlocked
+              ? "Publishing is disabled while your expert account is trust-restricted."
+              : starterLock
               ? "Starter lets you stay within your first offering type."
               : message}
           </span>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || publishingBlocked}
             className="button-block-mobile rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Saving..." : "Create offering"}
@@ -256,11 +268,12 @@ export function OfferingsManager({
                     setMessage("Offering updated successfully.");
                   });
                 }}
+                disabled={isPending || (publishingBlocked && !offering.is_active)}
                 className={`rounded-full px-4 py-2 text-xs font-semibold ${
                   offering.is_active
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-slate-100 text-slate-600"
-                }`}
+                } disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 {offering.is_active ? "Active" : "Inactive"}
               </button>

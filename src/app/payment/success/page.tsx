@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyKorapayCharge } from "@/lib/korapay";
+import { buildReviewPath } from "@/lib/reviews";
 import { supabaseAdmin } from "@/lib/supabase";
 import { buildMetadata } from "@/lib/seo";
+import { type TransactionContext } from "@/types";
 
 type PaymentSuccessPageProps = {
   searchParams: {
@@ -47,6 +49,7 @@ export default async function PaymentSuccessPage({
     "Your payment request reached Intellink. We are waiting for the final confirmation from Korapay.";
   let primaryHref = "/";
   let primaryLabel = "Return home";
+  let reviewHref: string | null = null;
 
   if (verifiedStatus === "success") {
     eyebrow = "Payment successful";
@@ -78,7 +81,7 @@ export default async function PaymentSuccessPage({
   if (type === "transaction" && verifiedStatus === "success") {
     const { data: transaction } = await supabaseAdmin
       .from("transactions")
-      .select("status, offering_type")
+      .select("status, offering_type, metadata")
       .eq("korapay_reference", reference)
       .maybeSingle();
 
@@ -87,6 +90,12 @@ export default async function PaymentSuccessPage({
         transaction.offering_type === "resource"
           ? "Payment confirmed. Your resource download should arrive in your email shortly."
           : "Payment confirmed. The expert has been notified and you will hear from them soon.";
+
+      const metadata = (transaction.metadata ?? {}) as TransactionContext;
+
+      if (metadata.reviewToken) {
+        reviewHref = buildReviewPath(reference, metadata.reviewToken);
+      }
     } else {
       statusCopy =
         "Your payment was confirmed. We are finalizing the purchase and notifying the expert right now.";
@@ -113,6 +122,22 @@ export default async function PaymentSuccessPage({
             Return home
           </Link>
         </div>
+        {reviewHref ? (
+          <div className="mt-8 rounded-[1.5rem] bg-slate-50 px-5 py-5 text-left">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-600">
+              Leave a review later
+            </p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Once you have used what you paid for, you can come back and rate the
+              experience. Honest reviews help keep Intellink trusted.
+            </p>
+            <div className="mt-4">
+              <Link href={reviewHref} className="button-secondary">
+                Open review link
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
-import { apiError, apiResponse, requireAuthenticatedUser } from "@/lib/auth";
+import {
+  apiError,
+  apiResponse,
+  requireAuthenticatedUser,
+  syncSubscriptionStatus,
+} from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +43,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (offering.user_id !== user.id) {
       return apiError("You cannot update this offering.", 403);
+    }
+
+    const profile = await syncSubscriptionStatus(user.id);
+
+    if (!profile) {
+      return apiError("Profile not found.", 404);
+    }
+
+    if (profile.trust_status === "restricted" && body.is_active) {
+      return apiError(
+        "Your expert account is currently restricted, so this offering cannot be reactivated.",
+        403,
+      );
     }
 
     const { data: updatedOffering, error: updateError } = await supabaseAdmin

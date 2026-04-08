@@ -3,6 +3,7 @@ import {
   apiError,
   apiResponse,
   hasVerifiedBankDetails,
+  isExpertTrusted,
   requireAuthenticatedUser,
   syncSubscriptionStatus,
   validateRequired,
@@ -60,6 +61,13 @@ export async function POST(request: NextRequest) {
     if (!hasVerifiedBankDetails(profile)) {
       return apiError(
         "Verify your bank details before publishing offerings.",
+        403,
+      );
+    }
+
+    if (!isExpertTrusted(profile)) {
+      return apiError(
+        "Your expert account is currently restricted from publishing new offerings.",
         403,
       );
     }

@@ -52,15 +52,15 @@
 
 @layer components {
   .button-primary {
-    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition duration-500 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_18px_50px_-25px_rgba(15,23,42,0.9)] sm:px-5;
+    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition duration-300 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-[0_18px_50px_-25px_rgba(15,23,42,0.9)] sm:px-5;
   }
 
   .button-secondary {
-    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition duration-500 hover:-translate-y-0.5 hover:border-slate-950 hover:bg-slate-50 hover:shadow-[0_16px_40px_-24px_rgba(15,23,42,0.28)] sm:px-5;
+    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition duration-300 hover:-translate-y-0.5 hover:border-slate-950 hover:bg-slate-50 hover:shadow-[0_16px_40px_-24px_rgba(15,23,42,0.28)] sm:px-5;
   }
 
   .button-gold {
-    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition duration-500 hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-[0_18px_50px_-24px_rgba(216,170,57,0.65)] sm:px-5;
+    @apply relative inline-flex items-center justify-center overflow-hidden rounded-full bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition duration-300 hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-[0_18px_50px_-24px_rgba(216,170,57,0.65)] sm:px-5;
   }
 
   .section-shell {
@@ -68,23 +68,24 @@
   }
 
   .panel {
-    @apply relative isolate overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] transition duration-700 hover:-translate-y-1 hover:shadow-[0_35px_120px_-60px_rgba(15,23,42,0.55)] sm:rounded-[2rem];
+    @apply relative isolate overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_35px_120px_-60px_rgba(15,23,42,0.55)] sm:rounded-[2rem];
   }
 
   .motion-shell {
     @apply relative isolate overflow-hidden;
+    transform: translateZ(0);
   }
 
   .page-enter {
-    animation: rise-in 0.95s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    animation: rise-in 0.58s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .rise-in {
-    animation: rise-in 0.95s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    animation: rise-in 0.58s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .rise-in-soft {
-    animation: rise-soft 1.1s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+    animation: rise-soft 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .delay-1 {
@@ -112,11 +113,11 @@
   }
 
   .float-card {
-    animation: float-slow 9s ease-in-out infinite;
+    transform: translateZ(0);
   }
 
   .float-card-alt {
-    animation: float-slow-reverse 11s ease-in-out infinite;
+    transform: translateZ(0);
   }
 
   .text-sheen {
@@ -127,18 +128,18 @@
       rgba(255, 255, 255, 0.92) 85%
     );
     background-size: 220% 100%;
-    animation: text-shine 6.5s linear infinite;
+    animation: text-shine 9s linear infinite;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .metric-card {
-    @apply relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm sm:p-5;
+    @apply relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-4 sm:p-5 md:backdrop-blur-sm;
   }
 
   .glass-card {
-    @apply border border-white/10 bg-white/5 backdrop-blur-md;
+    @apply border border-white/10 bg-white/[0.04] md:backdrop-blur-sm;
   }
 
   .stack-actions {
@@ -161,9 +162,9 @@
       linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
     background-size: 64px 64px;
     mask-image: radial-gradient(circle at center, black 38%, transparent 82%);
-    opacity: 0.24;
+    opacity: 0.16;
     transform: perspective(1400px) rotateX(76deg) scale(1.15);
-    animation: grid-pan 22s linear infinite;
+    animation: grid-pan 36s linear infinite;
   }
 
   .motion-beam {
@@ -178,18 +179,27 @@
       rgba(216, 170, 57, 0.2) 72%,
       transparent 100%
     );
-    filter: blur(2px);
-    opacity: 0.4;
+    filter: blur(1px);
+    opacity: 0.24;
     transform: rotate(12deg);
-    animation: beam-scan 14s ease-in-out infinite;
+    animation: beam-scan 24s ease-in-out infinite;
   }
 
   .motion-orb {
     position: absolute;
     border-radius: 9999px;
-    filter: blur(18px);
-    opacity: 0.75;
+    filter: blur(14px);
+    opacity: 0.52;
     will-change: transform;
+    transform: translateZ(0);
+  }
+
+  .orb-drift {
+    animation: float-slow 18s ease-in-out infinite;
+  }
+
+  .orb-drift-alt {
+    animation: float-slow-reverse 22s ease-in-out infinite;
   }
 
   .motion-orb-gold {
@@ -253,6 +263,25 @@
 
 .touch-scroll::-webkit-scrollbar {
   display: none;
+}
+
+@media (max-width: 1023px) {
+  .motion-grid,
+  .motion-beam,
+  .orb-drift,
+  .orb-drift-alt {
+    animation: none;
+  }
+
+  .motion-grid,
+  .motion-beam {
+    opacity: 0.1;
+  }
+
+  .text-sheen {
+    animation: none;
+    background-position: 50% 50%;
+  }
 }
 
 @keyframes rise-in {

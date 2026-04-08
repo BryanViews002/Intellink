@@ -13,38 +13,38 @@ const variants: Record<
 > = {
   hero: {
     orbOne:
-      "-right-16 -top-12 h-52 w-52 motion-orb motion-orb-gold float-card",
+      "-right-16 -top-12 h-52 w-52 motion-orb motion-orb-gold orb-drift",
     orbTwo:
-      "left-[6%] top-[42%] h-44 w-44 motion-orb motion-orb-ice float-card-alt",
+      "left-[6%] top-[42%] h-44 w-44 motion-orb motion-orb-ice orb-drift-alt",
     orbThree:
-      "right-[26%] bottom-[-3rem] h-56 w-56 motion-orb motion-orb-mint float-card",
+      "right-[26%] bottom-[-3rem] h-56 w-56 motion-orb motion-orb-mint orb-drift",
     beamClass: "motion-beam",
   },
   pricing: {
     orbOne:
-      "right-[10%] top-[8%] h-48 w-48 motion-orb motion-orb-gold float-card",
+      "right-[10%] top-[8%] h-48 w-48 motion-orb motion-orb-gold orb-drift",
     orbTwo:
-      "-left-10 bottom-[12%] h-44 w-44 motion-orb motion-orb-ice float-card-alt",
+      "-left-10 bottom-[12%] h-44 w-44 motion-orb motion-orb-ice orb-drift-alt",
     orbThree:
-      "right-[32%] bottom-[-4rem] h-52 w-52 motion-orb motion-orb-mint float-card",
+      "right-[32%] bottom-[-4rem] h-52 w-52 motion-orb motion-orb-mint orb-drift",
     beamClass: "motion-beam opacity-60",
   },
   dashboard: {
     orbOne:
-      "right-[8%] top-[-3rem] h-40 w-40 motion-orb motion-orb-gold float-card",
+      "right-[8%] top-[-3rem] h-40 w-40 motion-orb motion-orb-gold orb-drift",
     orbTwo:
-      "left-[4%] bottom-[-2rem] h-36 w-36 motion-orb motion-orb-ice float-card-alt",
+      "left-[4%] bottom-[-2rem] h-36 w-36 motion-orb motion-orb-ice orb-drift-alt",
     orbThree:
-      "right-[30%] top-[35%] h-40 w-40 motion-orb motion-orb-mint float-card",
+      "right-[30%] top-[35%] h-40 w-40 motion-orb motion-orb-mint orb-drift",
     beamClass: "motion-beam opacity-50",
   },
   bank: {
     orbOne:
-      "right-[12%] top-[5%] h-44 w-44 motion-orb motion-orb-gold float-card",
+      "right-[12%] top-[5%] h-44 w-44 motion-orb motion-orb-gold orb-drift",
     orbTwo:
-      "-left-8 top-[25%] h-36 w-36 motion-orb motion-orb-ice float-card-alt",
+      "-left-8 top-[25%] h-36 w-36 motion-orb motion-orb-ice orb-drift-alt",
     orbThree:
-      "right-[38%] bottom-[-2rem] h-44 w-44 motion-orb motion-orb-mint float-card",
+      "right-[38%] bottom-[-2rem] h-44 w-44 motion-orb motion-orb-mint orb-drift",
     beamClass: "motion-beam opacity-55",
   },
 };

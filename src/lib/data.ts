@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { unstable_cache } from "next/cache";
 import { createServerSupabaseClient, supabaseAdmin } from "@/lib/supabase";
 import {
+  canExpertAcceptPurchases,
   getUserProfile,
   hasVerifiedBankDetails,
   requireAdminUser,
@@ -9,7 +10,12 @@ import {
 } from "@/lib/auth";
 import { calculateDaysRemaining } from "@/lib/format";
 import { listNigerianBanks } from "@/lib/korapay";
-import { type MarketplaceListing, type OfferingType } from "@/types";
+import { getExpertReviewSummary } from "@/lib/reviews";
+import {
+  type ExpertReview,
+  type MarketplaceListing,
+  type OfferingType,
+} from "@/types";
 
 export async function requireDashboardUser() {
   const supabase = createServerSupabaseClient();
@@ -47,6 +53,49 @@ export async function requireVerifiedDashboardUser() {
   return context;
 }
 
+async function getRecentExpertReviews(
+  expertId: string,
+  limit = 5,
+): Promise<ExpertReview[]> {
+  const { data: ratings } = await supabaseAdmin
+    .from("ratings")
+    .select(
+      `
+        id,
+        stars,
+        comment,
+        created_at,
+        transactions!inner(
+          client_name,
+          offering_type,
+          offerings(title)
+        )
+      `,
+    )
+    .eq("expert_id", expertId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (ratings ?? []).map((rating) => {
+    const transaction = Array.isArray(rating.transactions)
+      ? rating.transactions[0]
+      : rating.transactions;
+    const offering = Array.isArray(transaction?.offerings)
+      ? transaction.offerings[0]
+      : transaction?.offerings;
+
+    return {
+      id: rating.id,
+      stars: Number(rating.stars),
+      comment: rating.comment,
+      created_at: rating.created_at,
+      client_name: transaction?.client_name ?? "Anonymous client",
+      offering_title: offering?.title ?? "Expert offering",
+      offering_type: (transaction?.offering_type ?? "qa") as OfferingType,
+    };
+  });
+}
+
 export async function getDashboardData(userId: string) {
   const profile = await getUserProfile(userId);
 
@@ -54,7 +103,13 @@ export async function getDashboardData(userId: string) {
     return null;
   }
 
-  const [{ data: questions }, { data: sessions }, { data: transactions }] =
+  const [
+    { data: questions },
+    { data: sessions },
+    { data: transactions },
+    reviews,
+    reviewSummary,
+  ] =
     await Promise.all([
       supabaseAdmin
         .from("questions")
@@ -111,6 +166,8 @@ export async function getDashboardData(userId: string) {
         .eq("expert_id", userId)
         .order("created_at", { ascending: false })
         .limit(8),
+      getRecentExpertReviews(userId, 4),
+      getExpertReviewSummary(userId),
     ]);
 
   const normalizedQuestions = (questions ?? []).map((question) => {
@@ -161,6 +218,8 @@ export async function getDashboardData(userId: string) {
     questions: normalizedQuestions,
     sessions: normalizedSessions,
     transactions: normalizedTransactions,
+    reviews,
+    reviewSummary,
     daysRemaining: calculateDaysRemaining(profile.subscription_expires_at),
   };
 }
@@ -169,7 +228,7 @@ export async function getPublicProfile(username: string) {
   const { data: expert } = await supabaseAdmin
     .from("users")
     .select(
-      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified",
+      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, trust_status, trust_flagged_at, trust_reason",
     )
     .eq("username", username)
     .single();
@@ -178,25 +237,23 @@ export async function getPublicProfile(username: string) {
     return null;
   }
 
-  let offerings: Array<Record<string, unknown>> = [];
-
-  if (
-    expert.subscription_status === "active" &&
-    expert.korapay_recipient_verified
-  ) {
-    const { data } = await supabaseAdmin
+  const [{ data: offerings }, reviews, reviewSummary] = await Promise.all([
+    supabaseAdmin
       .from("offerings")
       .select("id, type, title, description, price, file_url")
       .eq("user_id", expert.id)
       .eq("is_active", true)
-      .order("created_at", { ascending: false });
-
-    offerings = data ?? [];
-  }
+      .order("created_at", { ascending: false }),
+    getRecentExpertReviews(expert.id, 6),
+    getExpertReviewSummary(expert.id),
+  ]);
 
   return {
     expert,
-    offerings,
+    offerings: offerings ?? [],
+    reviews,
+    reviewSummary,
+    isAvailable: canExpertAcceptPurchases(expert),
   };
 }
 
@@ -216,6 +273,7 @@ export async function getPublicOffering(username: string, offeringId: string) {
   return {
     expert: profile.expert,
     offering,
+    isAvailable: profile.isAvailable,
   };
 }
 
@@ -230,7 +288,7 @@ const getMarketplaceSnapshot = unstable_cache(
     const { data } = await supabaseAdmin
       .from("offerings")
       .select(
-        `
+      `
           id,
           type,
           title,
@@ -244,13 +302,15 @@ const getMarketplaceSnapshot = unstable_cache(
             bio,
             profile_photo,
             subscription_status,
-            korapay_recipient_verified
+            korapay_recipient_verified,
+            trust_status
           )
         `,
       )
       .eq("is_active", true)
       .eq("users.subscription_status", "active")
       .eq("users.korapay_recipient_verified", true)
+      .eq("users.trust_status", "good")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -259,6 +319,7 @@ const getMarketplaceSnapshot = unstable_cache(
   ["marketplace-snapshot"],
   {
     revalidate: 300,
+    tags: ["marketplace-snapshot"],
   },
 );
 
@@ -376,7 +437,7 @@ export async function getAdminStats() {
       supabaseAdmin
         .from("users")
         .select(
-          "id, name, email, username, subscription_plan, subscription_status, subscription_expires_at, created_at",
+          "id, name, email, username, subscription_plan, subscription_status, subscription_expires_at, trust_status, trust_flagged_at, trust_reason, created_at",
         )
         .order("created_at", { ascending: false }),
       supabaseAdmin
@@ -419,12 +480,17 @@ export async function getAdminStats() {
     return new Date(item.subscription_expires_at).getTime() <= Date.now();
   });
 
+  const restrictedExperts = (subscriptions ?? []).filter((item) => {
+    return item.trust_status === "restricted";
+  });
+
   return {
     activeSubscriptions: activeSubscriptions ?? 0,
     monthlyRevenue,
     subscribers: subscriptions ?? [],
     transactions: transactions ?? [],
     expiredSubscriptions,
+    restrictedExperts,
   };
 }
 

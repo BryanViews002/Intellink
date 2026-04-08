@@ -139,6 +139,7 @@ export async function sendAnswerEmail(
   clientName: string,
   expertName: string,
   answerText: string,
+  reviewUrl?: string,
 ) {
   const formattedAnswer = answerText
     .split("\n")
@@ -153,6 +154,12 @@ export async function sendAnswerEmail(
       <p>Hi ${clientName},</p>
       <p>${expertName} has answered your question:</p>
       <div>${formattedAnswer}</div>
+      ${
+        reviewUrl
+          ? `<p>If this helped you, leave a review to help other clients trust the right experts.</p>
+             <p><a href="${reviewUrl}">Leave a review</a></p>`
+          : ""
+      }
       <p>Thank you for using Intellink.</p>
     `,
   });
@@ -163,6 +170,7 @@ export async function sendResourceDownloadEmail(
   clientName: string,
   resourceTitle: string,
   downloadUrl: string,
+  reviewUrl?: string,
 ) {
   await sendEmail({
     to: email,
@@ -172,6 +180,12 @@ export async function sendResourceDownloadEmail(
       <p>Hi ${clientName},</p>
       <p>Thanks for purchasing ${resourceTitle}.</p>
       <p><a href="${downloadUrl}">Download your resource</a></p>
+      ${
+        reviewUrl
+          ? `<p>Used it already? Help other clients by sharing a quick review.</p>
+             <p><a href="${reviewUrl}">Leave a review</a></p>`
+          : ""
+      }
     `,
   });
 }
@@ -191,6 +205,24 @@ export async function sendPayoutReceivedEmail(
       <p>You just received ${amount} from a client purchase on Intellink.</p>
       <p>Client: ${clientName}</p>
       <p><a href="${baseUrl}/dashboard">View dashboard</a></p>
+    `,
+  });
+}
+
+export async function sendExpertRestrictedEmail(
+  email: string,
+  expertName: string,
+  oneStarReviewCount: number,
+) {
+  await sendEmail({
+    to: email,
+    subject: "Your Intellink profile has been restricted",
+    html: `
+      <h2>Your profile has been restricted</h2>
+      <p>Hi ${expertName},</p>
+      <p>Your expert profile has been automatically restricted after receiving ${oneStarReviewCount} one-star reviews within the last 7 days.</p>
+      <p>Your public page is hidden from new client purchases while the trust issue is reviewed.</p>
+      <p><a href="${baseUrl}/dashboard">Open your dashboard</a></p>
     `,
   });
 }

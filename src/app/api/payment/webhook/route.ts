@@ -14,6 +14,7 @@ import {
   sendSubscriptionWelcomeEmail,
 } from "@/lib/email";
 import { formatCurrency } from "@/lib/format";
+import { buildReviewUrl } from "@/lib/reviews";
 import { supabaseAdmin } from "@/lib/supabase";
 import { type TransactionContext } from "@/types";
 
@@ -166,6 +167,9 @@ async function handleTransactionCharge(reference: string) {
   }
 
   const metadata = (transaction.metadata ?? {}) as TransactionContext;
+  const reviewUrl = metadata.reviewToken
+    ? buildReviewUrl(reference, metadata.reviewToken)
+    : undefined;
 
   if (!alreadyProcessed && offering.type === "qa") {
     const questionText = metadata.questionText?.trim() || "Question submitted";
@@ -236,6 +240,7 @@ async function handleTransactionCharge(reference: string) {
           transaction.client_name,
           offering.title,
           signedUrlData.signedUrl,
+          reviewUrl,
         );
       } catch (error) {
         console.error("Resource delivery email failed:", error);

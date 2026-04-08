@@ -15,6 +15,7 @@ export default async function DashboardOfferingsPage() {
     <main className="section-shell py-8">
       <OfferingsManager
         plan={profile.subscription_plan ?? "starter"}
+        trustStatus={profile.trust_status ?? "good"}
         offerings={offerings ?? []}
       />
     </main>

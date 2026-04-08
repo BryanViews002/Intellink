@@ -6,7 +6,9 @@ import {
   validateRequired,
 } from "@/lib/auth";
 import { sendAnswerEmail } from "@/lib/email";
+import { buildReviewUrl } from "@/lib/reviews";
 import { supabaseAdmin } from "@/lib/supabase";
+import { type TransactionContext } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,9 @@ export async function POST(request: NextRequest) {
             id,
             expert_id,
             client_name,
-            client_email
+            client_email,
+            korapay_reference,
+            metadata
           )
         `,
       )
@@ -58,6 +62,10 @@ export async function POST(request: NextRequest) {
     }
 
     const answerText = body.answer_text.trim();
+    const transactionMetadata = (transaction.metadata ?? {}) as TransactionContext;
+    const reviewUrl = transactionMetadata.reviewToken
+      ? buildReviewUrl(transaction.korapay_reference, transactionMetadata.reviewToken)
+      : undefined;
 
     await supabaseAdmin
       .from("questions")
@@ -80,6 +88,7 @@ export async function POST(request: NextRequest) {
           transaction.client_name,
           expert.name,
           answerText,
+          reviewUrl,
         );
       } catch (error) {
         console.error("Answer email failed:", error);

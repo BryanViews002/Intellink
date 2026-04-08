@@ -31,7 +31,7 @@ export default async function AdminPage() {
           </p>
         </section>
 
-        <section className="grid gap-5 md:grid-cols-3">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <article className="panel p-5 sm:p-6">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
               Active subscriptions
@@ -54,6 +54,14 @@ export default async function AdminPage() {
             </p>
             <p className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">
               {stats.expiredSubscriptions.length}
+            </p>
+          </article>
+          <article className="panel p-5 sm:p-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              Restricted experts
+            </p>
+            <p className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">
+              {stats.restrictedExperts.length}
             </p>
           </article>
         </section>
@@ -136,6 +144,46 @@ export default async function AdminPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="panel overflow-hidden">
+          <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+            <h2 className="text-2xl font-semibold text-slate-950">
+              Restricted experts
+            </h2>
+          </div>
+          <div className="overflow-x-auto px-5 py-5 sm:px-6">
+            {stats.restrictedExperts.length > 0 ? (
+              <table className="min-w-[760px] w-full text-left text-sm">
+                <thead className="text-slate-500">
+                  <tr>
+                    <th className="pb-4">Name</th>
+                    <th className="pb-4">Username</th>
+                    <th className="pb-4">Plan</th>
+                    <th className="pb-4">Flagged</th>
+                    <th className="pb-4">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-700">
+                  {stats.restrictedExperts.map((expert) => (
+                    <tr key={expert.id} className="border-t border-slate-100">
+                      <td className="py-4">{expert.name}</td>
+                      <td className="py-4">@{expert.username}</td>
+                      <td className="py-4 capitalize">
+                        {expert.subscription_plan ?? "none"}
+                      </td>
+                      <td className="py-4">{formatDate(expert.trust_flagged_at)}</td>
+                      <td className="py-4">{expert.trust_reason ?? "Trust review in progress"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-sm text-slate-500">
+                No experts are currently trust-restricted.
+              </p>
+            )}
           </div>
         </section>
       </div>

@@ -19,7 +19,14 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     notFound();
   }
 
-  if (payload.expert.subscription_status !== "active") {
+  if (!payload.isAvailable) {
+    const unavailableCopy =
+      payload.expert.subscription_status !== "active"
+        ? "Their subscription is inactive, so new purchases are disabled right now."
+        : payload.expert.trust_status === "restricted"
+          ? "This expert has been removed from new purchases while Intellink reviews recent client feedback."
+          : "This expert is still completing payout verification, so purchases are temporarily disabled.";
+
     return (
       <main className="section-shell flex min-h-screen items-center py-8 sm:py-12">
         <section className="panel mx-auto max-w-3xl px-6 py-10 text-center sm:px-8 sm:py-12">
@@ -30,7 +37,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
             This expert is currently unavailable.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            Their subscription is inactive, so new purchases are disabled right now.
+            {unavailableCopy}
           </p>
           <div className="mt-10">
             <Link
@@ -94,6 +101,6 @@ export async function generateMetadata({
       `${payload.expert.name} is selling ${String(payload.offering.title)} on Intellink.`,
     ),
     path: `/${params.username}/pay/${params.offeringId}`,
-    noIndex: true,
+    noIndex: !payload.isAvailable,
   });
 }

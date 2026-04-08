@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicProfile } from "@/lib/data";
 import { OFFERING_TYPE_OPTIONS } from "@/lib/constants";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate, formatRating } from "@/lib/format";
 import { absoluteUrl, buildMetadata, truncateDescription } from "@/lib/seo";
 
 type PublicProfilePageProps = {
@@ -23,13 +23,13 @@ export default async function PublicProfilePage({
   }
 
   const { expert, offerings } = profile;
-  const unavailable =
-    expert.subscription_status !== "active" ||
-    !expert.korapay_recipient_verified;
+  const unavailable = !profile.isAvailable;
   const unavailableReason =
     expert.subscription_status !== "active"
       ? "Their subscription is inactive, so the profile is hidden from client purchases until they renew."
-      : "Their payout details are still being verified, so purchases are temporarily disabled.";
+      : expert.trust_status === "restricted"
+        ? "This expert has been removed from new client purchases while Intellink reviews a recent trust issue."
+        : "Their payout details are still being verified, so purchases are temporarily disabled.";
   const personJsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -108,6 +108,26 @@ export default async function PublicProfilePage({
               <p className="mt-6 max-w-3xl text-base leading-8 text-slate-300 sm:text-lg">
                 {expert.bio || "This expert has not added a bio yet."}
               </p>
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-sm text-slate-300">Average rating</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {formatRating(profile.reviewSummary.averageStars)}
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-sm text-slate-300">Client reviews</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {profile.reviewSummary.totalReviews}
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-sm text-slate-300">Trust status</p>
+                  <p className="mt-2 text-2xl font-semibold text-white capitalize">
+                    {expert.trust_status}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -182,6 +202,47 @@ export default async function PublicProfilePage({
           )}
         </div>
       </section>
+
+      <section className="section-shell mt-8">
+        <div className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+            Client reviews
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
+            What clients are saying
+          </h2>
+        </div>
+
+        {profile.reviews.length > 0 ? (
+          <div className="grid gap-5 lg:grid-cols-2">
+            {profile.reviews.map((review) => (
+              <article key={review.id} className="panel p-6 sm:p-7">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-600">
+                      {review.stars} star{review.stars === 1 ? "" : "s"}
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-950">
+                      {review.offering_title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-slate-500">{formatDate(review.created_at)}</p>
+                </div>
+                <p className="mt-4 text-sm font-medium text-slate-500">
+                  {review.client_name}
+                </p>
+                <p className="mt-3 text-base leading-8 text-slate-600">
+                  {review.comment || "This client left a star rating without a written review."}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="panel px-6 py-10 text-center text-slate-500 sm:px-8 sm:py-12">
+            No reviews yet. The first client review will show up here.
+          </div>
+        )}
+      </section>
     </main>
   );
 }
@@ -201,9 +262,7 @@ export async function generateMetadata({
   }
 
   const { expert } = profile;
-  const noIndex =
-    expert.subscription_status !== "active" ||
-    !expert.korapay_recipient_verified;
+  const noIndex = !profile.isAvailable;
   const description = truncateDescription(
     expert.bio,
     `${expert.name} sells paid expert knowledge, sessions, and resources on Intellink.`,
