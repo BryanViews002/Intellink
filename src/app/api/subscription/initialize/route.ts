@@ -28,9 +28,10 @@ export async function POST(request: NextRequest) {
       return apiError("Invalid subscription plan");
     }
 
+    // Check free month first
     const { data: profile } = await supabaseAdmin
       .from("users")
-      .select("id, name, email")
+      .select("id, name, email, is_free_month, free_expires_at, subscription_status")
       .eq("id", user.id)
       .single();
 
@@ -38,6 +39,33 @@ export async function POST(request: NextRequest) {
       return apiError("User profile not found", 404);
     }
 
+    const now = new Date();
+    const freeExpires = profile.free_expires_at ? new Date(profile.free_expires_at) : null;
+
+    // If free month active, bypass payment and extend if needed
+    if (profile.is_free_month && freeExpires && freeExpires > now && profile.subscription_status === "active") {
+      const newExpires = createSubscriptionExpiry(plan);
+      if (newExpires > freeExpires) {
+        await supabaseAdmin
+          .from("users")
+          .update({ 
+            subscription_expires_at: newExpires.toISOString(),
+            subscription_plan: plan 
+          })
+          .eq("id", user.id);
+      }
+
+      return apiResponse({
+        success: true,
+        message: "Subscription renewed using free month balance. No payment needed.",
+        checkout_url: null,
+        plan,
+        is_free_month: true,
+        free_until: profile.free_expires_at,
+      });
+    }
+
+    // Normal paid subscription flow
     const checkout = buildSubscriptionCheckout(plan, profile);
     const expiresAt = createSubscriptionExpiry(plan);
 
@@ -81,3 +109,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

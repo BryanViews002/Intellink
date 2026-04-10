@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDateTime,
   formatRating,
+  calculateDaysRemaining,
 } from "@/lib/format";
 
 export default async function DashboardPage() {
@@ -19,6 +20,11 @@ export default async function DashboardPage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const profileUrl = `${baseUrl}/${dashboard.profile.username}`;
+
+  const now = new Date();
+  const freeExpires = profile.free_expires_at ? new Date(profile.free_expires_at) : null;
+  const freeDays = freeExpires ? Math.max(0, Math.ceil((freeExpires.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))) : 0;
+  const showFreeMonth = profile.is_free_month && freeDays > 0;
 
   return (
     <main className="section-shell page-enter space-y-8 py-6 sm:py-8">
@@ -47,18 +53,35 @@ export default async function DashboardPage() {
             </p>
             <div className="mt-4 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <h2 className="text-3xl font-semibold capitalize sm:text-4xl">
-                  {dashboard.profile.subscription_plan} plan
-                </h2>
-                <p className="mt-3 text-base leading-7 text-slate-300">
-                  Expires on {formatDate(dashboard.profile.subscription_expires_at)}.
-                  You have {dashboard.daysRemaining} day
-                  {dashboard.daysRemaining === 1 ? "" : "s"} left.
-                </p>
+                {showFreeMonth ? (
+                  <>
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+                      🎉 Free Pro Month
+                    </span>
+                    <h2 className="mt-3 text-3xl font-semibold capitalize sm:text-4xl">
+                      {profile.subscription_plan} plan
+                    </h2>
+                    <p className="mt-3 text-base leading-7 text-slate-300">
+                      Free until {formatDate(profile.free_expires_at)}. 
+                      {freeDays} day{freeDays === 1 ? '' : 's'} left.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-3xl font-semibold capitalize sm:text-4xl">
+                      {dashboard.profile.subscription_plan} plan
+                    </h2>
+                    <p className="mt-3 text-base leading-7 text-slate-300">
+                      Expires on {formatDate(dashboard.profile.subscription_expires_at)}.
+                      You have {dashboard.daysRemaining} day
+                      {dashboard.daysRemaining === 1 ? "" : "s"} left.
+                    </p>
+                  </>
+                )}
               </div>
 
               <Link href="/pricing" className="button-gold button-block-mobile">
-                {dashboard.daysRemaining <= 3 ? "Renew now" : "Manage renewal"}
+                {showFreeMonth && freeDays > 7 ? "Upgrade now" : dashboard.daysRemaining <= 3 ? "Renew now" : "Manage renewal"}
               </Link>
             </div>
           </div>
@@ -284,3 +307,4 @@ export default async function DashboardPage() {
     </main>
   );
 }
+

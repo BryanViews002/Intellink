@@ -13,9 +13,46 @@ export default function RegisterPage() {
     username: "",
     password: "",
     confirmPassword: "",
+    promoCode: "",
   });
   const [message, setMessage] = useState("");
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'applying' | 'success' | 'error'>('idle');
+  const [promoMessage, setPromoMessage] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [promoApplied, setPromoApplied] = useState(false);
+
+  const applyPromo = async () => {
+    if (!form.promoCode.trim()) {
+      setPromoStatus('error');
+      setPromoMessage('Enter promo code');
+      return;
+    }
+
+    setPromoStatus('applying');
+    setPromoMessage('');
+
+    try {
+      const response = await fetch('/api/promo/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promo_code: form.promoCode.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setPromoStatus('success');
+        setPromoMessage(result.message || 'Promo applied!');
+        setPromoApplied(true);
+      } else {
+        setPromoStatus('error');
+        setPromoMessage(result.message || 'Invalid promo');
+      }
+    } catch (error) {
+      setPromoStatus('error');
+      setPromoMessage('Network error');
+    }
+  };
 
   return (
     <main className="section-shell flex min-h-screen items-center py-8 sm:py-12">
@@ -68,17 +105,20 @@ export default function RegisterPage() {
               }
 
               startTransition(async () => {
+                const body = {
+                  name: form.name,
+                  email: form.email,
+                  username: form.username,
+                  password: form.password,
+                  ...(promoApplied && { promo_code: 'BRYAN' }),
+                };
+
                 const response = await fetch("/api/auth/register", {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
                   },
-                  body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    username: form.username,
-                    password: form.password,
-                  }),
+                  body: JSON.stringify(body),
                 });
 
                 const payload = await response.json();
@@ -93,7 +133,8 @@ export default function RegisterPage() {
                   refresh_token: payload.data.refresh_token,
                 });
 
-                router.push("/pricing");
+                const redirectPath = promoApplied ? '/dashboard' : '/pricing';
+                router.push(redirectPath);
                 router.refresh();
               });
             }}
@@ -179,6 +220,39 @@ export default function RegisterPage() {
               </label>
             </div>
 
+            {/* Promo Code Section */}
+            <div className="space-y-3">
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-slate-700">Promo Code (optional)</span>
+                <div className="flex gap-3">
+                  <input
+                    value={form.promoCode}
+                    onChange={(e) => setForm({...form, promoCode: e.target.value})}
+                    placeholder="Enter BRYAN"
+                    className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromo}
+                    disabled={promoStatus === 'applying'}
+                    className="button-secondary whitespace-nowrap px-6 disabled:opacity-50"
+                  >
+                    {promoStatus === 'applying' ? 'Applying...' : 'Apply'}
+                  </button>
+                </div>
+              </label>
+              {promoStatus === 'success' && (
+                <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 border border-emerald-200">
+                  {promoMessage}
+                </p>
+              )}
+              {promoStatus === 'error' && (
+                <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 border border-rose-200">
+                  {promoMessage}
+                </p>
+              )}
+            </div>
+
             <div className="stack-actions">
               <span className="text-sm text-slate-500">{message}</span>
               <button
@@ -186,7 +260,7 @@ export default function RegisterPage() {
                 disabled={isPending}
                 className="button-primary button-block-mobile disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isPending ? "Creating..." : "Create account"}
+                {isPending ? "Creating..." : promoApplied ? "Get Free Pro Month → Dashboard" : "Create account"}
               </button>
             </div>
           </form>
@@ -202,3 +276,4 @@ export default function RegisterPage() {
     </main>
   );
 }
+

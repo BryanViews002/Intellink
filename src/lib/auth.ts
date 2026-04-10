@@ -118,21 +118,18 @@ export async function syncSubscriptionStatus(userId: string) {
     return null;
   }
 
-  const expiresAt = userProfile.subscription_expires_at
-    ? new Date(userProfile.subscription_expires_at)
-    : null;
+  const now = new Date();
+  let expiresAt = userProfile.subscription_expires_at ? new Date(userProfile.subscription_expires_at) : null;
+  const freeExpiresAt = userProfile.free_expires_at ? new Date(userProfile.free_expires_at) : null;
 
-  const isExpired = !expiresAt || expiresAt.getTime() <= Date.now();
-
-  if (!isExpired) {
-    return userProfile;
-  }
-
-  if (userProfile.subscription_status !== "inactive") {
+  // Handle free month expiry
+  if (userProfile.is_free_month && freeExpiresAt && freeExpiresAt <= now) {
     await supabaseAdmin
       .from("users")
       .update({
+        is_free_month: false,
         subscription_status: "inactive",
+        subscription_expires_at: null,
       })
       .eq("id", userId);
 
@@ -141,12 +138,41 @@ export async function syncSubscriptionStatus(userId: string) {
     } catch (error) {
       console.error("Failed to send subscription expired email:", error);
     }
+
+    return {
+      ...userProfile,
+      is_free_month: false,
+      subscription_status: "inactive",
+      subscription_expires_at: null,
+    };
   }
 
-  return {
-    ...userProfile,
-    subscription_status: "inactive",
-  };
+  // Handle regular subscription expiry
+  const isExpired = !expiresAt || expiresAt <= now;
+
+  if (isExpired && !userProfile.is_free_month) {
+    if (userProfile.subscription_status !== "inactive") {
+      await supabaseAdmin
+        .from("users")
+        .update({
+          subscription_status: "inactive",
+        })
+        .eq("id", userId);
+
+      try {
+        await sendSubscriptionExpiredEmail(userProfile.email, userProfile.name);
+      } catch (error) {
+        console.error("Failed to send subscription expired email:", error);
+      }
+    }
+
+    return {
+      ...userProfile,
+      subscription_status: "inactive",
+    };
+  }
+
+  return userProfile;
 }
 
 export async function requireAdminUser(user: AuthUser) {

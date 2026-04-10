@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const email = body.email.trim().toLowerCase();
     const username = normalizeUsername(body.username);
     const password = body.password;
+    const promoCode = body.promo_code?.trim().toUpperCase() || '';
 
     if (password.length < 8) {
       return apiError("Password must be at least 8 characters long");
@@ -61,18 +62,47 @@ export async function POST(request: NextRequest) {
       return apiError(createError?.message || "Unable to create account", 400);
     }
 
-    const { error: profileError } = await supabaseAdmin.from("users").insert({
-      id: createdUser.user.id,
+    const userId = createdUser.user.id;
+
+    // Handle promo code if provided
+    let profileData = {
+      id: userId,
       name,
       email,
       username,
-      subscription_plan: null,
-      subscription_status: "inactive",
-      subscription_expires_at: null,
-    });
+      subscription_plan: null as any,
+      subscription_status: "inactive" as const,
+      subscription_expires_at: null as any,
+    };
+
+    if (promoCode === "BRYAN") {
+      // Atomic redeem via RPC
+      const { data: redeemResult, error: redeemError } = await supabaseAdmin.rpc("redeem_promo", {
+        user_uuid: userId,
+        promo: "BRYAN",
+      });
+
+      if (redeemError || !redeemResult?.[0]?.success) {
+        // Continue without promo, log error
+        console.error("Promo redeem failed during register:", redeemError || redeemResult?.[0]?.message);
+      } else {
+        // Success: Set free Pro month
+        const freeExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        profileData = {
+          ...profileData,
+          is_free_month: true,
+          free_expires_at: freeExpiresAt,
+          subscription_plan: "pro",
+          subscription_status: "active",
+          subscription_expires_at: freeExpiresAt,
+        };
+      }
+    }
+
+    const { error: profileError } = await supabaseAdmin.from("users").insert(profileData);
 
     if (profileError) {
-      await supabaseAdmin.auth.admin.deleteUser(createdUser.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(userId);
       return apiError("Unable to create user profile", 400);
     }
 
@@ -86,15 +116,20 @@ export async function POST(request: NextRequest) {
       return apiError("Account created, but automatic sign-in failed.", 500);
     }
 
+    const responseMessage = promoCode === "BRYAN" && profileData.is_free_month 
+      ? "Account created with BRYAN promo! Pro plan free for 30 days."
+      : "Account created successfully. Choose a plan to continue.";
+
     return apiResponse(
       {
-        user_id: createdUser.user.id,
+        user_id: userId,
         email,
-        subscription_status: "inactive",
+        subscription_status: profileData.subscription_status,
+        is_free_month: !!profileData.is_free_month,
         access_token: signInData.session.access_token,
         refresh_token: signInData.session.refresh_token,
       },
-      "Account created successfully. Choose a plan to continue.",
+      responseMessage,
       201,
     );
   } catch (error) {
@@ -102,3 +137,4 @@ export async function POST(request: NextRequest) {
     return apiError("Internal server error", 500);
   }
 }
+
