@@ -7,7 +7,6 @@ import {
   formatDate,
   formatDateTime,
   formatRating,
-  calculateDaysRemaining,
 } from "@/lib/format";
 
 export default async function DashboardPage() {
