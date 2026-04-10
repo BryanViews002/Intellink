@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiError, apiResponse, normalizeUsername, validateRequired } from "@/lib/auth";
 import { supabaseAdmin, supabaseAuthServer } from "@/lib/supabase";
+import type { SubscriptionStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -64,38 +65,40 @@ export async function POST(request: NextRequest) {
 
     const userId = createdUser.user.id;
 
-    // Handle promo code if provided
-    let profileData = {
+    // Base profile data
+    const baseProfileData = {
       id: userId,
       name,
       email,
       username,
       subscription_plan: null as any,
-      subscription_status: "inactive" as const,
+      subscription_status: "inactive" as SubscriptionStatus,
       subscription_expires_at: null as any,
+      is_free_month: false,
+      free_expires_at: null as any,
     };
 
+    let profileData = baseProfileData;
+
+    // Handle promo code
     if (promoCode === "BRYAN") {
-      // Atomic redeem via RPC
       const { data: redeemResult, error: redeemError } = await supabaseAdmin.rpc("redeem_promo", {
         user_uuid: userId,
         promo: "BRYAN",
       });
 
-      if (redeemError || !redeemResult?.[0]?.success) {
-        // Continue without promo, log error
-        console.error("Promo redeem failed during register:", redeemError || redeemResult?.[0]?.message);
-      } else {
-        // Success: Set free Pro month
+      if (!redeemError && redeemResult?.[0]?.success) {
         const freeExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
         profileData = {
-          ...profileData,
+          ...baseProfileData,
           is_free_month: true,
           free_expires_at: freeExpiresAt,
-          subscription_plan: "pro",
-          subscription_status: "active",
+          subscription_plan: "pro" as const,
+          subscription_status: "active" as SubscriptionStatus,
           subscription_expires_at: freeExpiresAt,
         };
+      } else {
+        console.error("Promo redeem failed during register:", redeemError || redeemResult?.[0]?.message);
       }
     }
 
@@ -116,7 +119,8 @@ export async function POST(request: NextRequest) {
       return apiError("Account created, but automatic sign-in failed.", 500);
     }
 
-    const responseMessage = promoCode === "BRYAN" && profileData.is_free_month 
+    const isFreeMonth = profileData.is_free_month;
+    const responseMessage = isFreeMonth
       ? "Account created with BRYAN promo! Pro plan free for 30 days."
       : "Account created successfully. Choose a plan to continue.";
 
@@ -125,7 +129,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         email,
         subscription_status: profileData.subscription_status,
-        is_free_month: !!profileData.is_free_month,
+        is_free_month: isFreeMonth,
         access_token: signInData.session.access_token,
         refresh_token: signInData.session.refresh_token,
       },
