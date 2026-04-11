@@ -385,7 +385,7 @@ async function initiateExpertPayout(args: {
     return payout;
   } catch (error) {
     console.error("Korapay payout initiation failed:", error);
-
+    // Don't fail the payment - just mark payout as failed
     await supabaseAdmin
       .from("payouts")
       .update({
