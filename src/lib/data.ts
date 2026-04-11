@@ -5,6 +5,7 @@ import {
   canExpertAcceptPurchases,
   getUserProfile,
   hasVerifiedBankDetails,
+  normalizeUsername,
   requireAdminUser,
   syncSubscriptionStatus,
 } from "@/lib/auth";
@@ -228,9 +229,9 @@ export async function getPublicProfile(username: string) {
   const { data: expert } = await supabaseAdmin
     .from("users")
     .select(
-      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, trust_status, trust_flagged_at, trust_reason",
+      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, bank_code, bank_account, account_name, trust_status, trust_flagged_at, trust_reason",
     )
-    .eq("username", username)
+    .ilike("username", normalizeUsername(username))
     .single();
 
   if (!expert) {
@@ -264,7 +265,9 @@ export async function getPublicOffering(username: string, offeringId: string) {
     return null;
   }
 
-  const offering = profile.offerings.find((item) => item.id === offeringId);
+  const offering = profile.offerings.find(
+    (item) => String(item.id) === offeringId,
+  );
 
   if (!offering) {
     return null;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hasVerifiedBankDetails, syncSubscriptionStatus } from "@/lib/auth";
+import { syncSubscriptionStatus } from "@/lib/auth";
 import { createMiddlewareSupabaseClient } from "@/lib/supabase";
 
 export async function middleware(request: NextRequest) {
@@ -28,12 +28,6 @@ export async function middleware(request: NextRequest) {
 
   if (profile.subscription_status !== "active") {
     return NextResponse.redirect(new URL("/pricing", request.url));
-  }
-
-  const isBankDetailsRoute = pathname === "/dashboard/bank-details";
-
-  if (!hasVerifiedBankDetails(profile) && !isBankDetailsRoute) {
-    return NextResponse.redirect(new URL("/dashboard/bank-details", request.url));
   }
 
   return response;

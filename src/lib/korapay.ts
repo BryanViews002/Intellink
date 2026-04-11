@@ -9,6 +9,50 @@ import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
 const KORAPAY_SECRET_KEY = process.env.KORAPAY_SECRET_KEY ?? "";
 const KORAPAY_API_URL = "https://api.korapay.com/merchant/api/v1";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const BANK_LIST_TIMEOUT_MS = 4500;
+
+const NIGERIAN_BANKS_FALLBACK: NigerianBank[] = [
+  { code: "044", name: "Access Bank", slug: "access-bank", country: "NG" },
+  { code: "014", name: "Afribank Nigeria Plc", slug: "afribank", country: "NG" },
+  { code: "023", name: "Citibank Nigeria Limited", slug: "citibank-nigeria", country: "NG" },
+  { code: "050", name: "Ecobank Nigeria Plc", slug: "ecobank-nigeria", country: "NG" },
+  { code: "011", name: "First Bank of Nigeria Plc", slug: "first-bank", country: "NG" },
+  { code: "214", name: "First City Monument Bank", slug: "fcmb", country: "NG" },
+  { code: "070", name: "Fidelity Bank Plc", slug: "fidelity-bank", country: "NG" },
+  { code: "058", name: "Guaranty Trust Bank", slug: "gtbank", country: "NG" },
+  { code: "030", name: "Heritage Bank", slug: "heritage-bank", country: "NG" },
+  { code: "082", name: "Keystone Bank", slug: "keystone-bank", country: "NG" },
+  { code: "221", name: "Stanbic IBTC Bank", slug: "stanbic-ibtc", country: "NG" },
+  { code: "068", name: "Standard Chartered Bank", slug: "standard-chartered", country: "NG" },
+  { code: "232", name: "Sterling Bank", slug: "sterling-bank", country: "NG" },
+  { code: "032", name: "Union Bank of Nigeria", slug: "union-bank", country: "NG" },
+  { code: "033", name: "United Bank For Africa", slug: "uba", country: "NG" },
+  { code: "215", name: "Unity Bank Plc", slug: "unity-bank", country: "NG" },
+  { code: "035", name: "Wema Bank Plc", slug: "wema-bank", country: "NG" },
+  { code: "057", name: "Zenith Bank", slug: "zenith-bank", country: "NG" },
+  { code: "100004", name: "OPay", slug: "opay", country: "NG" },
+  { code: "999992", name: "PalmPay", slug: "palmpay", country: "NG" },
+  { code: "090267", name: "Kuda Bank", slug: "kuda-bank", country: "NG" },
+];
+
+function normalizeBanks(banks: NigerianBank[]) {
+  const seen = new Set<string>();
+
+  return banks
+    .filter((bank) => {
+      if (!bank?.code || !bank?.name) {
+        return false;
+      }
+
+      if (seen.has(bank.code)) {
+        return false;
+      }
+
+      seen.add(bank.code);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 type KorapayCustomer = {
   name: string;
@@ -181,28 +225,43 @@ export async function verifyKorapayCharge(reference: string) {
 
 export async function listNigerianBanks() {
   if (!KORAPAY_SECRET_KEY) {
-    throw new Error("KORAPAY_SECRET_KEY is missing");
+    return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
   }
 
-  const response = await fetch(
-    `${KORAPAY_API_URL}/misc/banks?countryCode=NG`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${KORAPAY_SECRET_KEY}`,
+  let timeout: NodeJS.Timeout | null = null;
+
+  try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), BANK_LIST_TIMEOUT_MS);
+
+    const response = await fetch(
+      `${KORAPAY_API_URL}/misc/banks?countryCode=NG`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${KORAPAY_SECRET_KEY}`,
+        },
+        signal: controller.signal,
+        next: { revalidate: 60 * 60 * 24 },
       },
-      next: { revalidate: 60 * 60 * 24 },
-    },
-  );
+    );
 
-  const payload =
-    (await response.json().catch(() => null)) as KorapayListBanksResponse | null;
+    const payload =
+      (await response.json().catch(() => null)) as KorapayListBanksResponse | null;
 
-  if (!response.ok || !payload?.status) {
-    throw new Error(payload?.message || "Unable to load Nigerian banks");
+    if (!response.ok || !payload?.status) {
+      return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
+    }
+
+    return normalizeBanks(payload.data ?? NIGERIAN_BANKS_FALLBACK);
+  } catch (error) {
+    console.error("Falling back to local bank list:", error);
+    return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
-
-  return payload.data ?? [];
 }
 
 export async function resolveNigerianBankAccount(args: {
@@ -222,7 +281,7 @@ export async function resolveNigerianBankAccount(args: {
     body: JSON.stringify({
       bank: args.bankCode,
       account: args.accountNumber,
-      currency: "NG",
+      currency: "NGN",
     }),
     cache: "no-store",
   });
