@@ -1,5 +1,3 @@
-import { listNigerianBanks } from "@/lib/korapay";
-
 export const dynamic = "force-dynamic";
 
 // Test endpoint to verify Korapay API connectivity
