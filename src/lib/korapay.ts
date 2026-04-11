@@ -179,6 +179,8 @@ export async function verifyKorapayCharge(reference: string) {
     throw new Error("KORAPAY_SECRET_KEY is missing");
   }
 
+  console.log("verifyKorapayCharge called for reference:", reference);
+
   const response = await fetch(`${KORAPAY_API_URL}/charges/${reference}`, {
     method: "GET",
     headers: {
@@ -187,10 +189,15 @@ export async function verifyKorapayCharge(reference: string) {
     cache: "no-store",
   });
 
+  console.log("verifyKorapayCharge response status:", response.status);
+
   const payload =
     (await response.json().catch(() => null)) as KorapayChargeVerificationResponse | null;
 
+  console.log("verifyKorapayCharge payload:", JSON.stringify(payload));
+
   if (!response.ok || !payload) {
+    console.log("verifyKorapayCharge: response not ok or payload null");
     return {
       status: false,
       message: payload?.message || "Unable to verify charge",
@@ -198,6 +205,7 @@ export async function verifyKorapayCharge(reference: string) {
     };
   }
 
+  console.log("verifyKorapayCharge: returning success");
   return payload;
 }
 
