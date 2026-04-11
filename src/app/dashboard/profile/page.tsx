@@ -1,8 +1,8 @@
 import { ProfileForm } from "@/components/dashboard/ProfileForm";
-import { requireVerifiedDashboardUser } from "@/lib/data";
+import { requireDashboardUser } from "@/lib/data";
 
 export default async function DashboardProfilePage() {
-  const { profile } = await requireVerifiedDashboardUser();
+  const { profile } = await requireDashboardUser();
 
   return (
     <main className="section-shell py-8">
