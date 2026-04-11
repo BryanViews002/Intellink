@@ -16,43 +16,7 @@ export default function RegisterPage() {
     promoCode: "",
   });
   const [message, setMessage] = useState("");
-  const [promoStatus, setPromoStatus] = useState<'idle' | 'applying' | 'success' | 'error'>('idle');
-  const [promoMessage, setPromoMessage] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [promoApplied, setPromoApplied] = useState(false);
-
-  const applyPromo = async () => {
-    if (!form.promoCode.trim()) {
-      setPromoStatus('error');
-      setPromoMessage('Enter promo code');
-      return;
-    }
-
-    setPromoStatus('applying');
-    setPromoMessage('');
-
-    try {
-      const response = await fetch('/api/promo/redeem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promo_code: form.promoCode.trim() }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setPromoStatus('success');
-        setPromoMessage(result.message || 'Promo applied!');
-        setPromoApplied(true);
-      } else {
-        setPromoStatus('error');
-        setPromoMessage(result.message || 'Invalid promo');
-      }
-    } catch (error) {
-      setPromoStatus('error');
-      setPromoMessage('Network error');
-    }
-  };
 
   return (
     <main className="section-shell flex min-h-screen items-center py-8 sm:py-12">
@@ -65,13 +29,13 @@ export default function RegisterPage() {
             Create your premium expert account.
           </h1>
           <p className="mt-6 text-base leading-8 text-slate-300 sm:text-lg">
-            Register once, pick a plan immediately, and launch a public profile
-            that sells your knowledge directly.
+            Register once and launch a public profile that sells your knowledge directly.
           </p>
           <div className="mt-10 space-y-4 text-sm leading-7 text-slate-300">
-            <p>No free tier. No trial. Straight premium.</p>
-            <p>Inactive subscriptions hide the profile and disable purchases.</p>
-            <p>Starter begins at one offering type, Pro unlocks all three.</p>
+            <p><span className="font-semibold text-amber-200">Promo: BRYAN</span> = Free Pro month (first 20 users)</p>
+            <p>No free tier. No trial. Premium only.</p>
+            <p>Inactive subscriptions hide profile automatically.</p>
+            <p>Pro unlocks Q&A, Sessions, Resources.</p>
           </div>
         </section>
 
@@ -85,97 +49,78 @@ export default function RegisterPage() {
                 Open your account
               </h2>
             </div>
-            <Link
-              href="/"
-              className="text-sm font-medium text-slate-500 hover:text-slate-950"
-            >
+            <Link href="/" className="text-sm font-medium text-slate-500 hover:text-slate-950">
               Back home
             </Link>
           </div>
 
-          <form
-            className="mt-8 space-y-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setMessage("");
+          <form className="mt-8 space-y-5" onSubmit={async (event) => {
+            event.preventDefault();
+            setMessage("");
 
-              if (form.password !== form.confirmPassword) {
-                setMessage("Passwords do not match.");
+            if (form.password !== form.confirmPassword) {
+              setMessage("Passwords do not match.");
+              return;
+            }
+
+            startTransition(async () => {
+              const body = {
+                name: form.name.trim(),
+                email: form.email.trim().toLowerCase(),
+                username: form.username.toLowerCase(),
+                password: form.password,
+                ...(form.promoCode.trim().toUpperCase() === 'BRYAN' && { promo_code: 'BRYAN' }),
+              };
+
+              const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              });
+
+              const payload = await response.json();
+
+              if (!response.ok) {
+                setMessage(payload.message || "Unable to create account.");
                 return;
               }
 
-              startTransition(async () => {
-                const body = {
-                  name: form.name,
-                  email: form.email,
-                  username: form.username,
-                  password: form.password,
-                  ...(promoApplied && { promo_code: 'BRYAN' }),
-                };
-
-                const response = await fetch("/api/auth/register", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(body),
-                });
-
-                const payload = await response.json();
-
-                if (!response.ok) {
-                  setMessage(payload.message || "Unable to create account.");
-                  return;
-                }
-
-                await applyBrowserSession({
-                  access_token: payload.data.access_token,
-                  refresh_token: payload.data.refresh_token,
-                });
-
-                const redirectPath = promoApplied ? '/dashboard' : '/pricing';
-                router.push(redirectPath);
-                router.refresh();
+              await applyBrowserSession({
+                access_token: payload.data.access_token,
+                refresh_token: payload.data.refresh_token,
               });
-            }}
-          >
+
+              router.push(payload.data.is_free_month ? '/dashboard' : '/pricing');
+              router.refresh();
+            });
+          }}>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">Name</span>
+                <span className="text-sm font-semibold text-slate-700">Full name</span>
                 <input
                   value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, name: event.target.value }))
-                  }
+                  onChange={(e) => setForm({...form, name: e.target.value})}
                   required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
                 />
               </label>
-
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-slate-700">Email</span>
                 <input
                   type="email"
                   value={form.email}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, email: event.target.value }))
-                  }
+                  onChange={(e) => setForm({...form, email: e.target.value})}
                   required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
                 />
               </label>
             </div>
 
-            <label className="block space-y-2">
+            <label className="space-y-2">
               <span className="text-sm font-semibold text-slate-700">Username</span>
               <input
                 value={form.username}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    username: event.target.value.toLowerCase(),
-                  }))
-                }
+                onChange={(e) => setForm({...form, username: e.target.value})}
                 required
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
                 placeholder="coachmira"
@@ -184,92 +129,52 @@ export default function RegisterPage() {
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Password
-                </span>
+                <span className="text-sm font-semibold text-slate-700">Password</span>
                 <input
                   type="password"
                   value={form.password}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      password: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setForm({...form, password: e.target.value})}
                   required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+                  minLength={8}
                 />
               </label>
-
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  Confirm password
-                </span>
+                <span className="text-sm font-semibold text-slate-700">Confirm password</span>
                 <input
                   type="password"
                   value={form.confirmPassword}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      confirmPassword: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
                   required
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
                 />
               </label>
             </div>
 
-            {/* Promo Code Section */}
-            <div className="space-y-3">
-              <label className="block space-y-2">
-                <span className="text-sm font-semibold text-slate-700">Promo Code (optional)</span>
-                <div className="flex gap-3">
-                  <input
-                    value={form.promoCode}
-                    onChange={(e) => setForm({...form, promoCode: e.target.value})}
-                    placeholder="Enter BRYAN"
-                    className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={applyPromo}
-                    disabled={promoStatus === 'applying'}
-                    className="button-secondary whitespace-nowrap px-6 disabled:opacity-50"
-                  >
-                    {promoStatus === 'applying' ? 'Applying...' : 'Apply'}
-                  </button>
-                </div>
-              </label>
-              {promoStatus === 'success' && (
-                <p className="rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 border border-emerald-200">
-                  {promoMessage}
-                </p>
-              )}
-              {promoStatus === 'error' && (
-                <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 border border-rose-200">
-                  {promoMessage}
-                </p>
-              )}
-            </div>
+            <label className="space-y-2">
+              <span className="text-sm font-semibold text-slate-700">Promo Code <span className="text-amber-600 font-normal">(BRYAN = Free Pro)</span></span>
+              <input
+                value={form.promoCode}
+                onChange={(e) => setForm({...form, promoCode: e.target.value})}
+                placeholder="BRYAN"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 focus:bg-white"
+              />
+            </label>
 
             <div className="stack-actions">
               <span className="text-sm text-slate-500">{message}</span>
               <button
                 type="submit"
                 disabled={isPending}
-                className="button-primary button-block-mobile disabled:cursor-not-allowed disabled:opacity-60"
+                className="button-primary button-block-mobile disabled:cursor-not-allowed disabled:opacity-60 h-12"
               >
-                {isPending ? "Creating..." : promoApplied ? "Get Free Pro Month → Dashboard" : "Create account"}
+                {isPending ? "Creating Account..." : "Create Account"}
               </button>
             </div>
           </form>
 
-          <p className="mt-8 text-sm text-slate-500">
-            Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-slate-950">
-              Sign in
-            </Link>
+          <p className="mt-8 text-center text-sm text-slate-500">
+            Already have an account? <Link href="/login" className="font-semibold text-slate-950 hover:underline">Sign in</Link>
           </p>
         </section>
       </div>
