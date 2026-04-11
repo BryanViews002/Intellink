@@ -242,7 +242,6 @@ export async function getPublicProfile(username: string) {
       .from("offerings")
       .select("id, type, title, description, price, file_url")
       .eq("user_id", expert.id)
-      .eq("is_active", true)
       .order("created_at", { ascending: false }),
     getRecentExpertReviews(expert.id, 6),
     getExpertReviewSummary(expert.id),
