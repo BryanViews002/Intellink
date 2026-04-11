@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { CheckoutForm } from "@/components/public/CheckoutForm";
 import { getPublicOffering } from "@/lib/data";
 import { buildMetadata, truncateDescription } from "@/lib/seo";
@@ -20,8 +19,26 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   console.log("CheckoutPage payload:", !!payload);
 
   if (!payload) {
-    console.log("CheckoutPage: calling notFound()");
-    notFound();
+    return (
+      <main className="section-shell flex min-h-screen items-center py-8 sm:py-12">
+        <section className="panel mx-auto max-w-3xl px-6 py-10 text-center sm:px-8 sm:py-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+            Error
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-950 sm:text-4xl">
+            Offering not found
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+            The offering you're looking for could not be found. Username: {params.username}, Offering ID: {params.offeringId}
+          </p>
+          <div className="mt-10">
+            <Link href="/discover" className="button-primary button-block-mobile">
+              Browse experts
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   if (!payload.isAvailable) {
