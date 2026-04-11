@@ -30,11 +30,6 @@ export async function POST(request: NextRequest) {
     console.log("Webhook received - signature present:", !!signature);
     console.log("Webhook raw body:", rawBody.substring(0, 500));
 
-    if (!signature || !verifyKorapaySignature(signature, rawBody)) {
-      console.error("Webhook signature verification failed");
-      return apiError("Invalid webhook signature", 401);
-    }
-
     const payload = JSON.parse(rawBody) as {
       event?: string;
       data?: {
@@ -43,6 +38,15 @@ export async function POST(request: NextRequest) {
         amount?: number;
       };
     };
+
+    // Korapay signature is calculated on the data object only
+    const dataString = JSON.stringify(payload.data);
+    console.log("Webhook data string for signature:", dataString.substring(0, 500));
+
+    if (!signature || !verifyKorapaySignature(signature, dataString)) {
+      console.error("Webhook signature verification failed");
+      return apiError("Invalid webhook signature", 401);
+    }
 
     console.log("Webhook event:", payload.event);
     console.log("Webhook reference:", payload.data?.reference);
