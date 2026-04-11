@@ -258,17 +258,28 @@ export async function getPublicProfile(username: string) {
 }
 
 export async function getPublicOffering(username: string, offeringId: string) {
+  console.log("getPublicOffering called:", { username, offeringId });
+
   const profile = await getPublicProfile(username);
 
   if (!profile) {
+    console.log("getPublicOffering: profile not found for username:", username);
     return null;
   }
+
+  console.log("getPublicOffering: profile found, offerings count:", profile.offerings.length);
 
   const offering = profile.offerings.find((item) => String(item.id) === String(offeringId));
 
   if (!offering) {
+    console.log("getPublicOffering: offering not found", {
+      offeringId,
+      availableIds: profile.offerings.map((o) => String(o.id)),
+    });
     return null;
   }
+
+  console.log("getPublicOffering: offering found:", offering.id);
 
   return {
     expert: profile.expert,
