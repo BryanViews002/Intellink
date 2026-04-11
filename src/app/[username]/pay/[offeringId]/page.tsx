@@ -13,9 +13,14 @@ type CheckoutPageProps = {
 };
 
 export default async function CheckoutPage({ params }: CheckoutPageProps) {
+  console.log("CheckoutPage called with params:", params);
+
   const payload = await getPublicOffering(params.username, params.offeringId);
 
+  console.log("CheckoutPage payload:", !!payload);
+
   if (!payload) {
+    console.log("CheckoutPage: calling notFound()");
     notFound();
   }
 

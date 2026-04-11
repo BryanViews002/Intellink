@@ -5,6 +5,8 @@ import { createMiddlewareSupabaseClient } from "@/lib/supabase";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  console.log("Middleware called for pathname:", pathname);
+
   if (!pathname.startsWith("/dashboard")) {
     return NextResponse.next();
   }
