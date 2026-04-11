@@ -52,6 +52,8 @@ export function BankDetailsForm({
 
   const selectedBankName =
     banks.find((bank) => bank.code === bankCode)?.name ?? "Selected bank";
+  const canVerify = bankCode.length > 0 && accountNumber.length === 10;
+  const hasBanks = banks.length > 0;
 
   return (
     <div className="space-y-6">
@@ -88,6 +90,7 @@ export function BankDetailsForm({
                 setMessage("");
               }}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+              disabled={!hasBanks}
             >
               <option value="">Select a bank</option>
               {banks.map((bank) => (
@@ -117,10 +120,24 @@ export function BankDetailsForm({
           </label>
         </div>
 
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          {hasBanks ? (
+            <p>
+              {banks.length} Nigerian banks loaded. Pick your bank and enter a
+              valid 10-digit account number to continue.
+            </p>
+          ) : (
+            <p>
+              Bank list is currently unavailable. Refresh this page and try
+              again in a moment.
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
-            disabled={isVerifying}
+            disabled={isVerifying || !canVerify}
             onClick={() => {
               setMessage("");
 
@@ -155,7 +172,7 @@ export function BankDetailsForm({
 
           <button
             type="button"
-            disabled={isSaving || !resolvedAccount}
+            disabled={isSaving || !resolvedAccount || !canVerify}
             onClick={() => {
               setMessage("");
 

@@ -9,6 +9,50 @@ import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
 const KORAPAY_SECRET_KEY = process.env.KORAPAY_SECRET_KEY ?? "";
 const KORAPAY_API_URL = "https://api.korapay.com/merchant/api/v1";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+const BANK_LIST_TIMEOUT_MS = 4500;
+
+const NIGERIAN_BANKS_FALLBACK: NigerianBank[] = [
+  { code: "044", name: "Access Bank" },
+  { code: "014", name: "Afribank Nigeria Plc" },
+  { code: "023", name: "Citibank Nigeria Limited" },
+  { code: "050", name: "Ecobank Nigeria Plc" },
+  { code: "011", name: "First Bank of Nigeria Plc" },
+  { code: "214", name: "First City Monument Bank" },
+  { code: "070", name: "Fidelity Bank Plc" },
+  { code: "058", name: "Guaranty Trust Bank" },
+  { code: "030", name: "Heritage Bank" },
+  { code: "082", name: "Keystone Bank" },
+  { code: "221", name: "Stanbic IBTC Bank" },
+  { code: "068", name: "Standard Chartered Bank" },
+  { code: "232", name: "Sterling Bank" },
+  { code: "032", name: "Union Bank of Nigeria" },
+  { code: "033", name: "United Bank For Africa" },
+  { code: "215", name: "Unity Bank Plc" },
+  { code: "035", name: "Wema Bank Plc" },
+  { code: "057", name: "Zenith Bank" },
+  { code: "100004", name: "OPay" },
+  { code: "999992", name: "PalmPay" },
+  { code: "090267", name: "Kuda Bank" },
+];
+
+function normalizeBanks(banks: NigerianBank[]) {
+  const seen = new Set<string>();
+
+  return banks
+    .filter((bank) => {
+      if (!bank?.code || !bank?.name) {
+        return false;
+      }
+
+      if (seen.has(bank.code)) {
+        return false;
+      }
+
+      seen.add(bank.code);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 type KorapayCustomer = {
   name: string;
@@ -181,28 +225,43 @@ export async function verifyKorapayCharge(reference: string) {
 
 export async function listNigerianBanks() {
   if (!KORAPAY_SECRET_KEY) {
-    throw new Error("KORAPAY_SECRET_KEY is missing");
+    return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
   }
 
-  const response = await fetch(
-    `${KORAPAY_API_URL}/misc/banks?countryCode=NG`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${KORAPAY_SECRET_KEY}`,
+  let timeout: NodeJS.Timeout | null = null;
+
+  try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), BANK_LIST_TIMEOUT_MS);
+
+    const response = await fetch(
+      `${KORAPAY_API_URL}/misc/banks?countryCode=NG`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${KORAPAY_SECRET_KEY}`,
+        },
+        signal: controller.signal,
+        next: { revalidate: 60 * 60 * 24 },
       },
-      next: { revalidate: 60 * 60 * 24 },
-    },
-  );
+    );
 
-  const payload =
-    (await response.json().catch(() => null)) as KorapayListBanksResponse | null;
+    const payload =
+      (await response.json().catch(() => null)) as KorapayListBanksResponse | null;
 
-  if (!response.ok || !payload?.status) {
-    throw new Error(payload?.message || "Unable to load Nigerian banks");
+    if (!response.ok || !payload?.status) {
+      return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
+    }
+
+    return normalizeBanks(payload.data ?? NIGERIAN_BANKS_FALLBACK);
+  } catch (error) {
+    console.error("Falling back to local bank list:", error);
+    return normalizeBanks(NIGERIAN_BANKS_FALLBACK);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
   }
-
-  return payload.data ?? [];
 }
 
 export async function resolveNigerianBankAccount(args: {

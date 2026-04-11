@@ -68,7 +68,9 @@
   }
 
   .panel {
-    @apply relative isolate overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_35px_120px_-60px_rgba(15,23,42,0.55)] sm:rounded-[2rem];
+    @apply relative isolate overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] transition duration-300 sm:rounded-[2rem];
+    content-visibility: auto;
+    contain-intrinsic-size: 320px;
   }
 
   .motion-shell {
@@ -254,6 +256,13 @@
 .button-secondary:hover::after,
 .button-gold:hover::after {
   transform: translateX(120%) rotate(12deg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .panel:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 35px 120px -60px rgba(15, 23, 42, 0.55);
+  }
 }
 
 .touch-scroll {
