@@ -237,7 +237,7 @@ export function BankDetailsForm({
               Bank list unavailable, but your account is verified
             </p>
             <p className="mt-1 text-xs text-amber-600">
-              Click "Save bank details" above to complete verification.
+              Click &quot;Save bank details&quot; above to complete verification.
             </p>
           </div>
         )}
