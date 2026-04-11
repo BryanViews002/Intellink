@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AnswerQuestionForm } from "@/components/dashboard/AnswerQuestionForm";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
-import { getDashboardData, requireVerifiedDashboardUser } from "@/lib/data";
+import { getDashboardData, requireDashboardUser } from "@/lib/data";
 import {
   formatCurrency,
   formatDate,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/format";
 
 export default async function DashboardPage() {
-  const { profile } = await requireVerifiedDashboardUser();
+  const { profile } = await requireDashboardUser();
   const dashboard = await getDashboardData(profile.id);
 
   if (!dashboard) {

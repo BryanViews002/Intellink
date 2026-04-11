@@ -1,9 +1,9 @@
 import { OfferingsManager } from "@/components/dashboard/OfferingsManager";
-import { requireVerifiedDashboardUser } from "@/lib/data";
+import { requireDashboardUser } from "@/lib/data";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export default async function DashboardOfferingsPage() {
-  const { profile } = await requireVerifiedDashboardUser();
+  const { profile } = await requireDashboardUser();
 
   const { data: offerings } = await supabaseAdmin
     .from("offerings")
