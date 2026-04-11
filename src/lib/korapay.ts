@@ -281,7 +281,7 @@ export async function resolveNigerianBankAccount(args: {
     body: JSON.stringify({
       bank: args.bankCode,
       account: args.accountNumber,
-      currency: "NG",
+      currency: "NGN",
     }),
     cache: "no-store",
   });

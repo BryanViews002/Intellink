@@ -10,6 +10,30 @@ import { resolveNigerianBankAccount } from "@/lib/korapay";
 
 export const dynamic = "force-dynamic";
 
+function mapBankResolveError(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "Unable to verify bank account";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("korapay_secret_key")) {
+    return apiError(
+      "Bank verification is temporarily unavailable. Please try again shortly.",
+      503,
+    );
+  }
+
+  if (
+    normalized.includes("unable to verify bank account") ||
+    normalized.includes("invalid") ||
+    normalized.includes("account") ||
+    normalized.includes("bank")
+  ) {
+    return apiError(message, 400);
+  }
+
+  return apiError("Unable to verify bank account right now.", 502);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { user, error } = await requireAuthenticatedUser(request);
@@ -54,9 +78,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Bank resolve error:", error);
-    return apiError(
-      error instanceof Error ? error.message : "Unable to verify bank account",
-      500,
-    );
+    return mapBankResolveError(error);
   }
 }
