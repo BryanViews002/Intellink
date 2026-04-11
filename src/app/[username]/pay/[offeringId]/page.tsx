@@ -29,7 +29,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
             Offering not found
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            The offering you're looking for could not be found. Username: {params.username}, Offering ID: {params.offeringId}
+            The offering you&apos;re looking for could not be found. Username: {params.username}, Offering ID: {params.offeringId}
           </p>
           <div className="mt-10">
             <Link href="/discover" className="button-primary button-block-mobile">
