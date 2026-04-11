@@ -91,6 +91,7 @@ export function createSubscriptionExpiry(plan: SubscriptionPlan) {
 
 export function verifyKorapaySignature(signature: string, payload: string) {
   if (!KORAPAY_SECRET_KEY) {
+    console.error("verifyKorapaySignature: KORAPAY_SECRET_KEY is not configured");
     return false;
   }
 
@@ -101,6 +102,15 @@ export function verifyKorapaySignature(signature: string, payload: string) {
 
   const normalizedSignature = signature.trim().toLowerCase();
   const normalizedDigest = digest.toLowerCase();
+
+  console.log("verifyKorapaySignature:", {
+    signaturePresent: !!signature,
+    signaturePrefix: signature ? signature.substring(0, 20) : null,
+    digestPrefix: digest.substring(0, 20),
+    keyConfigured: !!KORAPAY_SECRET_KEY,
+    keyPrefix: KORAPAY_SECRET_KEY.substring(0, 8),
+    match: normalizedSignature === normalizedDigest,
+  });
 
   if (normalizedSignature.length !== normalizedDigest.length) {
     return false;
