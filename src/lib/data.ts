@@ -231,7 +231,7 @@ export async function getPublicProfile(username: string) {
     .select(
       "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, bank_code, bank_account, account_name, trust_status, trust_flagged_at, trust_reason",
     )
-    .eq("username", normalizeUsername(username))
+    .ilike("username", normalizeUsername(username))
     .single();
 
   if (!expert) {
