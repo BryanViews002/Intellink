@@ -15,6 +15,12 @@ export function getBrowserSupabaseClient() {
     browserClient = createBrowserClient(
       supabaseUrl || fallbackSupabaseUrl,
       supabaseAnonKey || fallbackSupabaseAnonKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
     );
   }
 
