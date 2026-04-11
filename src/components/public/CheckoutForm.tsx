@@ -31,7 +31,7 @@ export function CheckoutForm({ offering, expert }: CheckoutFormProps) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr,0.9fr]">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] sm:p-8">
+      <section className="panel p-6 sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
           {typeLabel}
         </p>
@@ -43,16 +43,16 @@ export function CheckoutForm({ offering, expert }: CheckoutFormProps) {
         </p>
 
         <div className="mt-8 rounded-[1.5rem] bg-slate-950 p-6 text-white">
-          <p className="text-sm uppercase tracking-[0.18em] text-slate-300">
-            Sold by
-          </p>
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xl font-semibold">{expert.name}</p>
-              <p className="text-sm text-slate-300">@{expert.username}</p>
+              <p className="text-sm uppercase tracking-[0.18em] text-slate-400">
+                Sold by
+              </p>
+              <p className="mt-1 text-xl font-semibold">{expert.name}</p>
+              <p className="text-sm text-slate-400">@{expert.username}</p>
             </div>
             <div className="sm:text-right">
-              <p className="text-sm text-slate-300">Total</p>
+              <p className="text-sm text-slate-400">Total</p>
               <p className="text-3xl font-semibold text-amber-300">
                 {formatCurrency(offering.price)}
               </p>
@@ -62,7 +62,7 @@ export function CheckoutForm({ offering, expert }: CheckoutFormProps) {
       </section>
 
       <form
-        className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] sm:p-8"
+        className="panel space-y-5 p-6 sm:p-8"
         onSubmit={(event) => {
           event.preventDefault();
           setMessage("");

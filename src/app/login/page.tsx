@@ -20,7 +20,7 @@ export default function LoginPage() {
   return (
     <main className="section-shell flex min-h-screen items-center py-8 sm:py-12">
       <div className="mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-[0.85fr,1.15fr]">
-        <section className="panel bg-white/70 p-8 backdrop-blur sm:p-10">
+        <section className="panel bg-slate-50 p-8 sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
             Welcome back
           </p>

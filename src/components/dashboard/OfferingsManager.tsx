@@ -45,7 +45,7 @@ export function OfferingsManager({
   return (
     <div className="space-y-8">
       <form
-        className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] sm:p-8"
+        className="panel space-y-6 p-6 sm:p-8"
         onSubmit={(event) => {
           event.preventDefault();
           setMessage("");
@@ -224,7 +224,7 @@ export function OfferingsManager({
         {offerings.map((offering) => (
           <article
             key={offering.id}
-            className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)]"
+            className="panel p-6"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>

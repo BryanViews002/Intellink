@@ -117,7 +117,7 @@ export default async function DiscoverPage({
 
           <div className="relative z-10 grid gap-8 px-6 pb-10 pt-4 md:grid-cols-[1.1fr,0.9fr] md:px-8 md:pb-14">
             <div className="max-w-3xl">
-              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur-sm">
+              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200">
                 Clients browse freely. Only experts subscribe.
               </p>
               <h1 className="rise-in delay-2 mt-6 text-4xl font-semibold leading-[1.02] text-white sm:text-5xl md:text-6xl">
@@ -153,7 +153,7 @@ export default async function DiscoverPage({
             </div>
 
             <div className="panel glass-card rise-in delay-4 float-card border-white/10 p-5 text-white sm:p-6">
-              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 backdrop-blur-xl sm:p-6">
+              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 sm:p-6">
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
                   Browse by format
                 </p>
@@ -161,7 +161,7 @@ export default async function DiscoverPage({
                   {Object.values(OFFERING_TYPE_OPTIONS).map((option) => (
                     <div
                       key={option.id}
-                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
                     >
                       <p className="font-semibold text-white">{option.name}</p>
                       <p className="mt-2 text-sm leading-7 text-slate-300">
@@ -275,13 +275,13 @@ export default async function DiscoverPage({
                 </p>
 
                 <div className="mt-6 flex items-center gap-4 rounded-[1.5rem] bg-slate-50 p-4">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-lg font-semibold text-slate-700">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-base font-semibold text-slate-700">
                     {listing.expert.profile_photo ? (
                       <Image
                         src={listing.expert.profile_photo}
                         alt={listing.expert.name}
-                        width={56}
-                        height={56}
+                        width={48}
+                        height={48}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -292,11 +292,8 @@ export default async function DiscoverPage({
                     <p className="truncate text-sm font-semibold text-slate-950">
                       {listing.expert.name}
                     </p>
-                    <p className="truncate text-sm text-slate-500">
+                    <p className="truncate text-xs text-slate-500">
                       @{listing.expert.username}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                      {listing.expert.bio || "Expert profile available on Intellink."}
                     </p>
                   </div>
                 </div>

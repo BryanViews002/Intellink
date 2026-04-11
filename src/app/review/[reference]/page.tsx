@@ -100,7 +100,7 @@ export default async function ReviewPage({
 
   return (
     <main className="section-shell py-8 sm:py-12">
-      <section className="mx-auto mb-8 max-w-3xl rounded-[2rem] bg-slate-950 px-6 py-6 text-white shadow-[0_30px_90px_-60px_rgba(15,23,42,0.7)] sm:px-8 sm:py-8">
+      <section className="mx-auto mb-8 max-w-3xl rounded-[2rem] bg-slate-950 px-6 py-6 text-white sm:px-8 sm:py-8">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
           Verified purchase
         </p>

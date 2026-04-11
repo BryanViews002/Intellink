@@ -26,7 +26,7 @@ export function ProfileForm({ initialProfile }: ProfileFormProps) {
 
   return (
     <form
-      className="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_30px_90px_-60px_rgba(15,23,42,0.45)] sm:p-8"
+      className="panel space-y-6 p-6 sm:p-8"
       onSubmit={(event) => {
         event.preventDefault();
         setMessage("");

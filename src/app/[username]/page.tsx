@@ -109,21 +109,21 @@ export default async function PublicProfilePage({
                 {expert.bio || "This expert has not added a bio yet."}
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
-                  <p className="text-sm text-slate-300">Average rating</p>
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4">
+                  <p className="text-sm text-slate-400">Average rating</p>
                   <p className="mt-2 text-2xl font-semibold text-white">
                     {formatRating(profile.reviewSummary.averageStars)}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
-                  <p className="text-sm text-slate-300">Client reviews</p>
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4">
+                  <p className="text-sm text-slate-400">Client reviews</p>
                   <p className="mt-2 text-2xl font-semibold text-white">
                     {profile.reviewSummary.totalReviews}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur-sm">
-                  <p className="text-sm text-slate-300">Trust status</p>
-                  <p className="mt-2 text-2xl font-semibold text-white capitalize">
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4">
+                  <p className="text-sm text-slate-400">Trust status</p>
+                  <p className="mt-2 text-2xl font-semibold capitalize" style={{ color: expert.trust_status === 'good' ? '#4ade80' : '#fb923c' }}>
                     {expert.trust_status}
                   </p>
                 </div>
@@ -162,19 +162,23 @@ export default async function PublicProfilePage({
             <div className="grid gap-5 lg:grid-cols-2">
               {offerings.map((offering) => (
                 <article key={String(offering.id)} className="panel p-6 sm:p-7">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-                    {OFFERING_TYPE_OPTIONS[offering.type as keyof typeof OFFERING_TYPE_OPTIONS].shortName}
-                  </p>
-                  <h3 className="mt-3 text-2xl font-semibold text-slate-950">
-                    {String(offering.title)}
-                  </h3>
-                  <p className="mt-4 text-base leading-8 text-slate-600">
-                    {String(offering.description)}
-                  </p>
-                  <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-2xl font-semibold text-slate-950">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+                        {OFFERING_TYPE_OPTIONS[offering.type as keyof typeof OFFERING_TYPE_OPTIONS].shortName}
+                      </p>
+                      <h3 className="mt-3 text-2xl font-semibold text-slate-950">
+                        {String(offering.title)}
+                      </h3>
+                    </div>
+                    <p className="shrink-0 text-xl font-semibold text-slate-950">
                       {formatCurrency(Number(offering.price))}
                     </p>
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-slate-600">
+                    {String(offering.description)}
+                  </p>
+                  <div className="mt-6">
                     {unavailable ? (
                       <button
                         type="button"

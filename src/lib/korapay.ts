@@ -6,7 +6,8 @@ import {
 } from "@/types";
 import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
 
-const KORAPAY_SECRET_KEY = process.env.KORAPAY_SECRET_KEY ?? "";
+const KORAPAY_SECRET_KEY = process.env.KORAPAY_SECRET_KEY?.trim() ?? "";
+const KORAPAY_PUBLIC_KEY = process.env.KORAPAY_PUBLIC_KEY?.trim() ?? "";
 const KORAPAY_API_URL = "https://api.korapay.com/merchant/api/v1";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -122,6 +123,8 @@ export async function initializeKorapayPayment({
     throw new Error("KORAPAY_SECRET_KEY is missing");
   }
 
+  console.log("Initializing Korapay payment:", { amount, reference, customer, redirectPath });
+
   const response = await fetch(`${KORAPAY_API_URL}/charges/initialize`, {
     method: "POST",
     headers: {
@@ -139,7 +142,16 @@ export async function initializeKorapayPayment({
     }),
   });
 
-  const payload = await response.json().catch(() => null);
+  const rawText = await response.text();
+  console.log("Korapay initialize response status:", response.status);
+  console.log("Korapay initialize raw response:", rawText.substring(0, 500));
+
+  let payload = null;
+  try {
+    payload = JSON.parse(rawText);
+  } catch {
+    console.error("Failed to parse Korapay initialize response as JSON");
+  }
 
   if (!response.ok) {
     const message =
@@ -180,26 +192,52 @@ export async function verifyKorapayCharge(reference: string) {
 }
 
 export async function listNigerianBanks() {
-  if (!KORAPAY_SECRET_KEY) {
-    throw new Error("KORAPAY_SECRET_KEY is missing");
+  if (!KORAPAY_PUBLIC_KEY) {
+    throw new Error("KORAPAY_PUBLIC_KEY is missing");
   }
+
+  console.log("Fetching Nigerian banks from Korapay...");
+  console.log("API URL:", KORAPAY_API_URL);
+  console.log("Public key prefix:", KORAPAY_PUBLIC_KEY.substring(0, 8) + "...");
+  console.log("Public key length:", KORAPAY_PUBLIC_KEY.length);
 
   const response = await fetch(
     `${KORAPAY_API_URL}/misc/banks?countryCode=NG`,
     {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${KORAPAY_SECRET_KEY}`,
+        Authorization: `Bearer ${KORAPAY_PUBLIC_KEY}`,
       },
-      next: { revalidate: 60 * 60 * 24 },
+      cache: "no-store",
     },
   );
 
-  const payload =
-    (await response.json().catch(() => null)) as KorapayListBanksResponse | null;
+  const rawText = await response.text();
+  console.log("Korapay banks response status:", response.status);
+  console.log("Korapay banks raw response:", rawText.substring(0, 500));
+
+  let payload: KorapayListBanksResponse | null = null;
+  try {
+    payload = JSON.parse(rawText) as KorapayListBanksResponse;
+  } catch {
+    console.error("Failed to parse Korapay banks response as JSON");
+  }
 
   if (!response.ok || !payload?.status) {
-    throw new Error(payload?.message || "Unable to load Nigerian banks");
+    console.error("Korapay API error details:", {
+      status: response.status,
+      statusText: response.statusText,
+      payload,
+      authHeader: `Bearer ${KORAPAY_PUBLIC_KEY.substring(0, 8)}...`,
+    });
+    throw new Error(payload?.message || `Unable to load Nigerian banks (HTTP ${response.status})`);
+  }
+
+  console.log(`Loaded ${payload.data?.length ?? 0} banks from Korapay`);
+  
+  // Log first bank to check structure
+  if (payload.data && payload.data.length > 0) {
+    console.log("First bank structure:", JSON.stringify(payload.data[0]));
   }
 
   return payload.data ?? [];
@@ -213,6 +251,8 @@ export async function resolveNigerianBankAccount(args: {
     throw new Error("KORAPAY_SECRET_KEY is missing");
   }
 
+  console.log("Resolving bank account:", { bankCode: args.bankCode, accountNumber: args.accountNumber });
+
   const response = await fetch(`${KORAPAY_API_URL}/misc/banks/resolve`, {
     method: "POST",
     headers: {
@@ -222,17 +262,27 @@ export async function resolveNigerianBankAccount(args: {
     body: JSON.stringify({
       bank: args.bankCode,
       account: args.accountNumber,
-      currency: "NG",
+      currency: "NGN",
     }),
     cache: "no-store",
   });
 
-  const payload =
-    (await response.json().catch(() => null)) as KorapayResolveAccountResponse | null;
+  const rawText = await response.text();
+  console.log("Korapay resolve response status:", response.status);
+  console.log("Korapay resolve raw response:", rawText.substring(0, 500));
+
+  let payload: KorapayResolveAccountResponse | null = null;
+  try {
+    payload = JSON.parse(rawText) as KorapayResolveAccountResponse;
+  } catch {
+    console.error("Failed to parse Korapay resolve response as JSON");
+  }
 
   if (!response.ok || !payload?.status || !payload.data) {
-    throw new Error(payload?.message || "Unable to verify bank account");
+    throw new Error(payload?.message || `Unable to verify bank account (HTTP ${response.status})`);
   }
+
+  console.log("Bank account resolved successfully:", payload.data.account_name);
 
   return payload.data;
 }
@@ -329,7 +379,7 @@ export function buildTransactionCheckout(args: {
       expert_id: args.expertId,
       offering_id: args.offeringId,
       offering_type: args.offeringType,
-      context: args.context,
+      review_token: args.context.reviewToken,
     },
     customer: args.customer,
   };

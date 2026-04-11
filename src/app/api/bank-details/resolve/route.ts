@@ -12,6 +12,12 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Korapay is configured
+    if (!process.env.KORAPAY_SECRET_KEY) {
+      console.error("KORAPAY_SECRET_KEY is not configured");
+      return apiError("Payment service is not properly configured. Please contact support.", 500);
+    }
+
     const { user, error } = await requireAuthenticatedUser(request);
 
     if (error || !user) {
@@ -41,17 +47,42 @@ export async function POST(request: NextRequest) {
       return apiError("Account number must be 10 digits.");
     }
 
-    const account = await resolveNigerianBankAccount({
-      bankCode,
-      accountNumber: bankAccount,
-    });
+    if (!bankCode) {
+      return apiError("Please select a bank.");
+    }
 
-    return apiResponse(
-      {
-        account,
-      },
-      "Account verified successfully",
-    );
+    try {
+      const account = await resolveNigerianBankAccount({
+        bankCode,
+        accountNumber: bankAccount,
+      });
+
+      return apiResponse(
+        {
+          account,
+        },
+        "Account verified successfully",
+      );
+    } catch (korapayError) {
+      console.error("Korapay resolve error:", korapayError);
+      
+      // Handle specific Korapay errors
+      const errorMessage = korapayError instanceof Error ? korapayError.message : "Unknown error";
+      
+      if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
+        return apiError("Payment service authentication failed. Please contact support.", 500);
+      }
+      
+      if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+        return apiError("Bank account not found. Please check the account number.");
+      }
+      
+      if (errorMessage.includes("invalid") || errorMessage.includes("validation")) {
+        return apiError("Invalid bank details. Please check and try again.");
+      }
+      
+      return apiError("Unable to verify bank account. Please try again.", 500);
+    }
   } catch (error) {
     console.error("Bank resolve error:", error);
     return apiError(

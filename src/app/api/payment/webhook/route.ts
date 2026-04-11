@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-korapay-signature") ||
       request.headers.get("X-Korapay-Signature");
 
+    console.log("Webhook received - signature present:", !!signature);
+    console.log("Webhook raw body:", rawBody.substring(0, 500));
+
     if (!signature || !verifyKorapaySignature(signature, rawBody)) {
+      console.error("Webhook signature verification failed");
       return apiError("Invalid webhook signature", 401);
     }
 
@@ -40,28 +44,36 @@ export async function POST(request: NextRequest) {
       };
     };
 
+    console.log("Webhook event:", payload.event);
+    console.log("Webhook reference:", payload.data?.reference);
+
     if (payload.event === "transfer.success" || payload.event === "transfer.failed") {
       return handlePayoutTransferEvent(payload.event, payload.data?.reference);
     }
 
     if (payload.event !== "charge.success") {
+      console.log("Webhook event ignored:", payload.event);
       return apiResponse(null, "Event ignored");
     }
 
     const reference = payload.data?.reference;
 
     if (!reference) {
+      console.error("Webhook missing payment reference");
       return apiError("Missing payment reference");
     }
 
     if (reference.startsWith("SUB_")) {
+      console.log("Processing subscription charge:", reference);
       return handleSubscriptionCharge(reference);
     }
 
     if (reference.startsWith("INTLNK_")) {
+      console.log("Processing transaction charge:", reference);
       return handleTransactionCharge(reference);
     }
 
+    console.log("Webhook reference type ignored:", reference);
     return apiResponse(null, "Reference type ignored");
   } catch (error) {
     console.error("Webhook error:", error);

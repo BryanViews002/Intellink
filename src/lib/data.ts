@@ -228,7 +228,7 @@ export async function getPublicProfile(username: string) {
   const { data: expert } = await supabaseAdmin
     .from("users")
     .select(
-      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, trust_status, trust_flagged_at, trust_reason",
+      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, bank_code, bank_account, account_name, trust_status, trust_flagged_at, trust_reason",
     )
     .eq("username", username)
     .single();
@@ -264,7 +264,7 @@ export async function getPublicOffering(username: string, offeringId: string) {
     return null;
   }
 
-  const offering = profile.offerings.find((item) => item.id === offeringId);
+  const offering = profile.offerings.find((item) => String(item.id) === String(offeringId));
 
   if (!offering) {
     return null;
@@ -504,9 +504,23 @@ export async function getBankDetailsPageData(userId: string) {
   let banks = [] as Awaited<ReturnType<typeof listNigerianBanks>>;
 
   try {
-    banks = await listNigerianBanks();
+    // Check if Korapay is configured
+    if (!process.env.KORAPAY_SECRET_KEY) {
+      console.error("KORAPAY_SECRET_KEY is not configured for bank list loading");
+    } else {
+      banks = await listNigerianBanks();
+      console.log(`Loaded ${banks.length} Nigerian banks`);
+    }
   } catch (error) {
     console.error("Failed to load Korapay bank list:", error);
+    
+    // Log more specific error information
+    if (error instanceof Error) {
+      console.error("Bank list error details:", {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
   }
 
   return {

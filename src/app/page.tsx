@@ -79,7 +79,7 @@ export default async function HomePage() {
 
           <div className="relative z-10 grid gap-10 px-6 pb-14 pt-4 md:grid-cols-[1.15fr,0.85fr] md:px-8 md:pb-20 md:pt-6">
             <div className="max-w-3xl">
-              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200 backdrop-blur-sm">
+              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200">
                 Experts subscribe. Clients browse and buy freely.
               </p>
               <h1 className="rise-in delay-2 mt-6 text-4xl font-semibold leading-[1.02] text-white sm:text-5xl md:text-7xl">
@@ -124,7 +124,7 @@ export default async function HomePage() {
             </div>
 
             <div className="panel glass-card rise-in delay-4 float-card border-white/10 p-5 text-white sm:p-6">
-              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 backdrop-blur-xl sm:p-6">
+              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 sm:p-6">
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
                   Expert earnings stack
                 </p>
@@ -132,7 +132,7 @@ export default async function HomePage() {
                   {Object.values(OFFERING_TYPE_OPTIONS).map((option) => (
                     <div
                       key={option.id}
-                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
                     >
                       <p className="font-semibold text-white">{option.name}</p>
                       <p className="mt-2 text-sm leading-7 text-slate-300">

@@ -77,25 +77,50 @@ export function BankDetailsForm({
           event.preventDefault();
         }}
       >
+        {banks.length === 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-800">
+              Unable to load bank list
+            </p>
+            <p className="mt-1 text-xs text-amber-600">
+              Please check your internet connection or contact support if this persists.
+            </p>
+          </div>
+        )}
         <div className="grid gap-5 md:grid-cols-2">
           <label className="space-y-2">
-            <span className="text-sm font-semibold text-slate-700">Bank</span>
-            <select
-              value={bankCode}
-              onChange={(event) => {
-                setBankCode(event.target.value);
-                setResolvedAccount(null);
-                setMessage("");
-              }}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
-            >
-              <option value="">Select a bank</option>
-              {banks.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </select>
+            <span className="text-sm font-semibold text-slate-700">
+              Bank Code {banks.length === 0 && <span className="text-amber-600">(manual entry required)</span>}
+            </span>
+            {banks.length > 0 ? (
+              <select
+                value={bankCode}
+                onChange={(event) => {
+                  setBankCode(event.target.value);
+                  setResolvedAccount(null);
+                  setMessage("");
+                }}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+              >
+                <option value="">Select a bank</option>
+                {banks.map((bank) => (
+                  <option key={bank.code} value={bank.code}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={bankCode}
+                onChange={(event) => {
+                  setBankCode(event.target.value);
+                  setResolvedAccount(null);
+                  setMessage("");
+                }}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+                placeholder="e.g., 058 (GTBank)"
+              />
+            )}
           </label>
 
           <label className="space-y-2">
@@ -117,35 +142,51 @@ export function BankDetailsForm({
           </label>
         </div>
 
+        {banks.length === 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-800">
+              Bank list unavailable
+            </p>
+            <p className="mt-1 text-xs text-amber-600">
+              Enter your bank code manually. Common codes: GTBank (058), Access (044), FirstBank (011), Zenith (057), UBA (033), Wema (035).
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
-            disabled={isVerifying}
+            disabled={isVerifying || !bankCode || accountNumber.length !== 10}
             onClick={() => {
               setMessage("");
 
               startVerification(async () => {
-                const response = await fetch("/api/bank-details/resolve", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    bank_code: bankCode,
-                    bank_account: accountNumber,
-                  }),
-                });
+                try {
+                  const response = await fetch("/api/bank-details/resolve", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      bank_code: bankCode,
+                      bank_account: accountNumber,
+                    }),
+                  });
 
-                const payload = await response.json();
+                  const payload = await response.json();
 
-                if (!response.ok) {
+                  if (!response.ok) {
+                    setResolvedAccount(null);
+                    setMessage(payload.message || "Unable to verify bank account.");
+                    return;
+                  }
+
+                  setResolvedAccount(payload.data.account);
+                  setMessage("Account verified. Save to continue.");
+                } catch (error) {
                   setResolvedAccount(null);
-                  setMessage(payload.message || "Unable to verify bank account.");
-                  return;
+                  setMessage("Network error. Please try again.");
                 }
-
-                setResolvedAccount(payload.data.account);
-                setMessage("Account verified. Save to continue.");
               });
             }}
             className="button-secondary button-block-mobile disabled:cursor-not-allowed disabled:opacity-60"
@@ -189,6 +230,17 @@ export function BankDetailsForm({
             {isSaving ? "Saving..." : "Save bank details"}
           </button>
         </div>
+
+        {banks.length === 0 && resolvedAccount && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-800">
+              Bank list unavailable, but your account is verified
+            </p>
+            <p className="mt-1 text-xs text-amber-600">
+              Click "Save bank details" above to complete verification.
+            </p>
+          </div>
+        )}
 
         <p className="text-sm text-slate-500">{message}</p>
       </form>
