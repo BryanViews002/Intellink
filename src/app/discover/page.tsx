@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
+import { ScrollReveal } from "@/components/motion/ScrollReveal";
 import { getMarketplaceData } from "@/lib/data";
 import { OFFERING_TYPE_OPTIONS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
@@ -88,7 +89,7 @@ export default async function DiscoverPage({
   };
 
   return (
-    <main className="page-enter pb-20">
+    <main className="page-enter pb-20 text-slate-300">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -97,106 +98,103 @@ export default async function DiscoverPage({
       />
 
       <header className="section-shell pt-6">
-        <div className="panel motion-shell overflow-hidden bg-slate-950 text-white">
+        <div className="panel-lift overflow-hidden border-white/5 bg-gradient-to-b from-slate-900/80 to-[#030712]/90 backdrop-blur-3xl text-white">
           <AmbientBackdrop variant="hero" />
-          <div className="relative z-10 flex flex-col gap-5 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-8">
-            <div className="rise-in">
-              <p className="text-lg font-semibold tracking-[0.18em] text-amber-300">
+          <ScrollReveal direction="up" delay={1} className="relative z-10 flex flex-col gap-5 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-8">
+            <div>
+              <p className="text-lg font-bold tracking-[0.18em] text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
                 INTELLINK DISCOVER
               </p>
             </div>
-            <nav className="rise-in delay-1 flex flex-wrap items-center gap-3 text-sm">
-              <Link href="/" className="button-secondary">
+            <nav className="flex flex-wrap items-center gap-3 text-sm">
+              <Link href="/" className="button-secondary border-white/10 bg-white/5 text-slate-300 hover:text-white px-6">
                 Home
               </Link>
-              <Link href="/register" className="button-gold">
+              <Link href="/register" className="button-gold-glow px-6">
                 Become an expert
               </Link>
             </nav>
-          </div>
+          </ScrollReveal>
 
           <div className="relative z-10 grid gap-8 px-6 pb-10 pt-4 md:grid-cols-[1.1fr,0.9fr] md:px-8 md:pb-14">
             <div className="max-w-3xl">
-              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200">
-                Clients browse freely. Only experts subscribe.
-              </p>
-              <h1 className="rise-in delay-2 mt-6 text-4xl font-semibold leading-[1.02] text-white sm:text-5xl md:text-6xl">
-                Find experts
-                <span className="text-sheen block">worth paying.</span>
-              </h1>
-              <p className="rise-in delay-3 mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                Explore live Q&A offers, private sessions, and digital resources
-                from verified experts. Clients do not subscribe, they just browse,
-                pick what they need, and pay directly.
-              </p>
+              <ScrollReveal direction="up" delay={2}>
+                <p className="inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-500 drop-shadow">
+                  Clients browse freely. Only experts subscribe.
+                </p>
+              </ScrollReveal>
+              <ScrollReveal direction="up" delay={3}>
+                <h1 className="mt-6 text-4xl font-extrabold leading-[1.02] text-white sm:text-5xl md:text-6xl tracking-tight">
+                  Find experts{" "}
+                  <span className="text-gradient-gold block mt-2">worth paying.</span>
+                </h1>
+              </ScrollReveal>
+              <ScrollReveal direction="up" delay={4}>
+                <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
+                  Explore live Q&A offers, private sessions, and digital resources
+                  from verified experts. Clients do not subscribe, they just browse,
+                  pick what they need, and pay directly.
+                </p>
+              </ScrollReveal>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <div className="metric-card rise-in delay-3">
-                  <p className="text-sm text-slate-300">Live experts</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
+              <ScrollReveal direction="up" delay={5} className="mt-10 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 hover:bg-white/5 transition-all">
+                  <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Live experts</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">
                     {marketplace.totalExperts}
                   </p>
                 </div>
-                <div className="metric-card rise-in delay-4">
-                  <p className="text-sm text-slate-300">Live offers</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
+                <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 hover:bg-white/5 transition-all">
+                  <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Live offers</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">
                     {marketplace.totalListings}
                   </p>
                 </div>
-                <div className="metric-card rise-in delay-5">
-                  <p className="text-sm text-slate-300">Client access</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    No subscription
+                <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl p-5 hover:bg-white/5 transition-all">
+                  <p className="text-sm font-bold uppercase tracking-widest text-slate-500">Client access</p>
+                  <p className="mt-2 text-2xl font-extrabold text-amber-400">
+                    No sub.
                   </p>
                 </div>
-              </div>
+              </ScrollReveal>
             </div>
 
-            <div className="panel glass-card rise-in delay-4 float-card border-white/10 p-5 text-white sm:p-6">
-              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 sm:p-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+            <ScrollReveal direction="scale" delay={4} className="panel-lift border-white/10 bg-black/40 p-5 text-white sm:p-6 backdrop-blur-2xl">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 sm:p-6">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-400">
                   Browse by format
                 </p>
                 <div className="mt-6 space-y-4">
                   {Object.values(OFFERING_TYPE_OPTIONS).map((option) => (
                     <div
                       key={option.id}
-                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
+                      className="rounded-[1.25rem] border border-white/5 bg-black/50 p-4 transition hover:bg-white/5"
                     >
-                      <p className="font-semibold text-white">{option.name}</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-300">
+                      <p className="font-bold text-white">{option.name}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-400">
                         {option.description}
                       </p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 rounded-[1.5rem] bg-amber-300 px-5 py-4 text-slate-950">
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em]">
-                    Client rule
-                  </p>
-                  <p className="mt-2 text-sm leading-7">
-                    Experts pay to use Intellink. Clients never subscribe. They
-                    just discover, choose, and pay for the help they need.
-                  </p>
-                </div>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
         </div>
       </header>
 
       <section className="section-shell mt-16">
-        <div className="panel p-6 sm:p-8">
-          <div className="stack-actions gap-6">
+        <ScrollReveal direction="up" className="panel-lift border-white/5 bg-black/30 backdrop-blur-xl p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row gap-6 md:items-end justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-500">
                 Search marketplace
               </p>
-              <h2 className="mt-2 text-3xl font-semibold text-slate-950">
-                Browse what clients can buy right now
+              <h2 className="mt-2 text-3xl font-extrabold text-white tracking-tight">
+                Secure your uplink today.
               </h2>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-slate-500">
+            <p className="max-w-xl text-sm leading-relaxed text-slate-400 md:text-right">
               Search by expert name, username, offer title, topic, or bio. Filter
               by offer format when you know the type of help you want.
             </p>
@@ -207,37 +205,36 @@ export default async function DiscoverPage({
               type="text"
               name="q"
               defaultValue={query}
-              placeholder="Search experts, topics, offers"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+              placeholder="Search experts, topics, offers..."
+              className="w-full rounded-2xl border border-white/10 bg-black/50 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)]"
             />
             <select
               name="type"
               defaultValue={selectedType}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900 focus:bg-white"
+              className="w-full rounded-2xl border border-white/10 bg-black/50 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)] appearance-none"
             >
               {typeFilters.map((filter) => (
-                <option key={filter.id} value={filter.id}>
+                <option key={filter.id} value={filter.id} className="bg-slate-900">
                   {filter.label}
                 </option>
               ))}
             </select>
-            <button type="submit" className="button-primary button-block-mobile">
-              Search
+            <button type="submit" className="button-gold-glow px-10">
+              Execute
             </button>
           </form>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             {typeFilters.map((filter) => {
               const active = filter.id === selectedType;
-
               return (
                 <Link
                   key={filter.id}
                   href={getDiscoverHref(filter.id, query)}
                   className={
                     active
-                      ? "rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-                      : "rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-950 hover:text-slate-950"
+                      ? "rounded-full bg-cyan-500/20 px-5 py-2 text-sm font-bold text-cyan-400 border border-cyan-400/30 shadow-[0_0_10px_rgba(6,182,212,0.3)] transition"
+                      : "rounded-full border border-white/10 bg-black/40 px-5 py-2 text-sm font-bold text-slate-400 transition hover:border-white/30 hover:text-white"
                   }
                 >
                   {filter.label}
@@ -245,90 +242,98 @@ export default async function DiscoverPage({
               );
             })}
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       <section className="section-shell mt-10">
         {marketplace.listings.length > 0 ? (
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {marketplace.listings.map((listing, index) => (
-              <article
-                key={listing.id}
-                className={`panel rise-in p-6 sm:p-7 ${index % 2 === 0 ? "float-card" : "float-card-alt"}`}
-              >
-                <div className="flex items-start justify-between gap-4">
+              <ScrollReveal key={listing.id} delay={index} direction="up" className="h-full">
+                <article
+                  className={`panel-lift flex flex-col justify-between h-full border-white/10 bg-white/5 p-6 sm:p-7 hover:border-amber-500/30 shadow-lg`}
+                >
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-                      {OFFERING_TYPE_OPTIONS[listing.type].shortName}
-                    </p>
-                    <h3 className="mt-3 text-2xl font-semibold text-slate-950">
-                      {listing.title}
-                    </h3>
-                  </div>
-                  <p className="text-lg font-semibold text-slate-950">
-                    {formatCurrency(listing.price)}
-                  </p>
-                </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-400 drop-shadow">
+                          {OFFERING_TYPE_OPTIONS[listing.type].shortName}
+                        </p>
+                        <h3 className="mt-3 text-xl font-bold text-white line-clamp-2">
+                          {listing.title}
+                        </h3>
+                      </div>
+                      <p className="text-xl font-extrabold text-amber-400 shrink-0">
+                        {formatCurrency(listing.price)}
+                      </p>
+                    </div>
 
-                <p className="mt-4 text-sm leading-7 text-slate-600">
-                  {truncateDescription(listing.description, listing.description, 150)}
-                </p>
-
-                <div className="mt-6 flex items-center gap-4 rounded-[1.5rem] bg-slate-50 p-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-base font-semibold text-slate-700">
-                    {listing.expert.profile_photo ? (
-                      <Image
-                        src={listing.expert.profile_photo}
-                        alt={listing.expert.name}
-                        width={48}
-                        height={48}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      listing.expert.name.slice(0, 1).toUpperCase()
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-950">
-                      {listing.expert.name}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      @{listing.expert.username}
+                    <p className="mt-4 text-sm leading-relaxed text-slate-400">
+                      {truncateDescription(listing.description, listing.description, 150)}
                     </p>
                   </div>
-                </div>
 
-                <div className="mt-6 button-row">
-                  <Link
-                    href={`/${listing.expert.username}`}
-                    className="button-secondary button-block-mobile"
-                  >
-                    View profile
-                  </Link>
-                  <Link
-                    href={`/${listing.expert.username}/pay/${listing.id}`}
-                    className="button-gold button-block-mobile"
-                  >
-                    Buy now
-                  </Link>
-                </div>
-              </article>
+                  <div className="mt-auto pt-6">
+                    <div className="flex items-center gap-4 rounded-[1.25rem] bg-black/40 p-4 border border-white/5">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-800 border border-slate-700 text-base font-bold text-white">
+                        {listing.expert.profile_photo ? (
+                          <Image
+                            src={listing.expert.profile_photo}
+                            alt={listing.expert.name}
+                            width={48}
+                            height={48}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          listing.expert.name.slice(0, 1).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-white">
+                          {listing.expert.name}
+                        </p>
+                        <p className="truncate text-xs font-mono text-cyan-200/50 mt-0.5">
+                          @{listing.expert.username}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                      <Link
+                        href={`/${listing.expert.username}`}
+                        className="button-secondary w-full border-white/10 bg-black/30 hover:bg-white/10 text-center py-3"
+                      >
+                        Scanner profile
+                      </Link>
+                      <Link
+                        href={`/${listing.expert.username}/pay/${listing.id}`}
+                        className="button-gold-glow w-full text-center py-3"
+                      >
+                        Acquire target
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              </ScrollReveal>
             ))}
           </div>
         ) : (
-          <div className="panel px-6 py-10 text-center text-slate-500 sm:px-8 sm:py-12">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-              No matches
-            </p>
-            <h2 className="mt-4 text-2xl font-semibold text-slate-950">
-              Nothing matched that search yet.
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-600">
-              Try a broader keyword or switch the offering type filter. New live
-              experts will appear here automatically once their subscription and
-              payout setup are active.
-            </p>
-          </div>
+          <ScrollReveal direction="scale">
+            <div className="panel-lift border-white/5 bg-black/40 px-6 py-16 text-center text-slate-500 sm:px-8">
+              <span className="block text-4xl mb-6">📡</span>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-rose-500 drop-shadow">
+                No telemetry found
+              </p>
+              <h2 className="mt-4 text-2xl font-extrabold text-white">
+                Nothing matched that search parameter.
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+                Try a broader keyword or switch the offering type filter. New live
+                experts will appear here automatically once their subscription and
+                payout setup are active.
+              </p>
+            </div>
+          </ScrollReveal>
         )}
       </section>
     </main>

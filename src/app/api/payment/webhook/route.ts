@@ -6,17 +6,12 @@ import {
   verifyKorapaySignature,
 } from "@/lib/korapay";
 import {
-  sendNewQuestionEmail,
   sendPayoutReceivedEmail,
-  sendResourceDownloadEmail,
-  sendResourceSoldEmail,
-  sendSessionBookedEmail,
   sendSubscriptionWelcomeEmail,
 } from "@/lib/email";
 import { formatCurrency } from "@/lib/format";
-import { buildReviewUrl } from "@/lib/reviews";
+import { processTransactionCharge } from "@/lib/transaction-processing";
 import { supabaseAdmin } from "@/lib/supabase";
-import { type TransactionContext } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +29,7 @@ export async function POST(request: NextRequest) {
       event?: string;
       data?: {
         reference?: string;
+        payment_reference?: string;
         status?: string;
         amount?: number;
       };
@@ -49,18 +45,23 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Webhook event:", payload.event);
-    console.log("Webhook reference:", payload.data?.reference);
+    const reference = payload.data?.payment_reference || payload.data?.reference;
+
+    console.log("Webhook reference:", reference);
 
     if (payload.event === "transfer.success" || payload.event === "transfer.failed") {
       return handlePayoutTransferEvent(payload.event, payload.data?.reference);
+    }
+
+    if (payload.event === "charge.failed") {
+      console.log("Processing charge.failed:", reference);
+      return handleChargeFailed(reference);
     }
 
     if (payload.event !== "charge.success") {
       console.log("Webhook event ignored:", payload.event);
       return apiResponse(null, "Event ignored");
     }
-
-    const reference = payload.data?.reference;
 
     if (!reference) {
       console.error("Webhook missing payment reference");
@@ -142,142 +143,97 @@ async function handleSubscriptionCharge(reference: string) {
 }
 
 async function handleTransactionCharge(reference: string) {
-  const { data: transaction } = await supabaseAdmin
-    .from("transactions")
-    .select("*")
-    .eq("korapay_reference", reference)
-    .single();
+  const result = await processTransactionCharge(reference);
 
-  if (!transaction) {
-    return apiError("Transaction not found", 404);
+  if (!result) {
+    return apiError("Transaction context missing", 404);
   }
 
-  const alreadyProcessed = transaction.status === "success";
-
-  if (!alreadyProcessed) {
-    await supabaseAdmin
-      .from("transactions")
-      .update({
-        status: "success",
-      })
-      .eq("id", transaction.id);
-  }
-
-  const [{ data: offering }, { data: expert }] = await Promise.all([
-    supabaseAdmin
-      .from("offerings")
-      .select("id, type, title, file_url")
-      .eq("id", transaction.offering_id)
-      .single(),
+  // Initiate expert payout
+  const [{ data: expert }, { data: transaction }] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select(
         "id, name, email, bank_code, bank_account, account_name, korapay_recipient_verified",
       )
-      .eq("id", transaction.expert_id)
+      .eq(
+        "id",
+        (
+          await supabaseAdmin
+            .from("transactions")
+            .select("expert_id")
+            .eq("korapay_reference", reference)
+            .single()
+        ).data?.expert_id ?? "",
+      )
+      .single(),
+    supabaseAdmin
+      .from("transactions")
+      .select("id, client_name, amount_paid, offering_id")
+      .eq("korapay_reference", reference)
       .single(),
   ]);
 
-  if (!offering || !expert) {
-    return apiError("Transaction context missing", 404);
-  }
+  if (expert && transaction && !result.alreadyProcessed) {
+    const { data: offering } = await supabaseAdmin
+      .from("offerings")
+      .select("title")
+      .eq("id", transaction.offering_id)
+      .single();
 
-  const metadata = (transaction.metadata ?? {}) as TransactionContext;
-  const reviewUrl = metadata.reviewToken
-    ? buildReviewUrl(reference, metadata.reviewToken)
-    : undefined;
-
-  if (!alreadyProcessed && offering.type === "qa") {
-    const questionText = metadata.questionText?.trim() || "Question submitted";
-
-    await supabaseAdmin.from("questions").insert({
-      transaction_id: transaction.id,
-      question_text: questionText,
-      is_answered: false,
+    await initiateExpertPayout({
+      transactionId: transaction.id,
+      expert,
+      transaction,
+      offeringTitle: offering?.title ?? "Expert offering",
     });
-
-    try {
-      await sendNewQuestionEmail(
-        expert.email,
-        expert.name,
-        transaction.client_name,
-        questionText,
-      );
-    } catch (error) {
-      console.error("New question email failed:", error);
-    }
   }
-
-  if (!alreadyProcessed && offering.type === "session") {
-    const scheduledTime = metadata.preferredTime || new Date().toISOString();
-
-    await supabaseAdmin.from("sessions").insert({
-      transaction_id: transaction.id,
-      scheduled_time: scheduledTime,
-      status: "pending",
-    });
-
-    try {
-      await sendSessionBookedEmail(
-        expert.email,
-        expert.name,
-        transaction.client_name,
-        scheduledTime,
-      );
-    } catch (error) {
-      console.error("Session email failed:", error);
-    }
-  }
-
-  if (!alreadyProcessed && offering.type === "resource") {
-    try {
-      await sendResourceSoldEmail(
-        expert.email,
-        expert.name,
-        transaction.client_name,
-        offering.title,
-      );
-    } catch (error) {
-      console.error("Resource sale email failed:", error);
-    }
-
-    if (offering.file_url) {
-      try {
-        const { data: signedUrlData } = await supabaseAdmin.storage
-          .from("resources")
-          .createSignedUrl(offering.file_url, 60 * 60 * 24 * 7);
-
-        if (!signedUrlData?.signedUrl) {
-          throw new Error("Unable to create signed resource URL");
-        }
-
-        await sendResourceDownloadEmail(
-          transaction.client_email,
-          transaction.client_name,
-          offering.title,
-          signedUrlData.signedUrl,
-          reviewUrl,
-        );
-      } catch (error) {
-        console.error("Resource delivery email failed:", error);
-      }
-    }
-  }
-
-  await initiateExpertPayout({
-    transactionId: transaction.id,
-    expert,
-    transaction,
-    offeringTitle: offering.title,
-  });
 
   return apiResponse(
     {
       reference,
-      transaction_id: transaction.id,
+      transaction_id: result.transactionId,
     },
     "Transaction processed successfully",
   );
+}
+
+async function handleChargeFailed(reference: string | undefined) {
+  if (!reference) {
+    return apiError("Missing payment reference for charge.failed", 400);
+  }
+
+  console.log("Handling charge.failed for reference:", reference);
+
+  if (reference.startsWith("SUB_")) {
+    const { error } = await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "failed" })
+      .eq("korapay_reference", reference)
+      .neq("status", "active");
+
+    if (error) {
+      console.error("Failed to update subscription status on charge.failed:", error);
+    }
+
+    return apiResponse({ reference }, "Subscription charge failed");
+  }
+
+  if (reference.startsWith("INTLNK_")) {
+    const { error } = await supabaseAdmin
+      .from("transactions")
+      .update({ status: "failed" })
+      .eq("korapay_reference", reference)
+      .neq("status", "success");
+
+    if (error) {
+      console.error("Failed to update transaction status on charge.failed:", error);
+    }
+
+    return apiResponse({ reference }, "Transaction charge failed");
+  }
+
+  return apiResponse({ reference }, "Charge failed - reference type ignored");
 }
 
 async function initiateExpertPayout(args: {

@@ -1,308 +1,333 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
-import { OFFERING_TYPE_OPTIONS, SUBSCRIPTION_PLANS } from "@/lib/constants";
-import { getMarketplaceData } from "@/lib/data";
+import { ScrollReveal } from "@/components/motion/ScrollReveal";
+import { SUBSCRIPTION_PLANS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
-import { absoluteUrl, siteConfig, truncateDescription } from "@/lib/seo";
+import { siteConfig } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: `${siteConfig.name} — Get Paid for What You Know`,
+  description: siteConfig.description,
+};
 
 const steps = [
   {
-    title: "Experts publish premium offers",
-    description:
-      "Experts create a public profile, stay active on subscription, and list paid Q&A, sessions, or digital resources.",
+    num: "01",
+    title: "Create your expert profile",
+    body: "Sign up, set up your profile, and pick the plan that matches how many offering types you need. Your page goes live the moment your subscription is active.",
   },
   {
-    title: "Clients browse what they need",
-    description:
-      "Clients come to Intellink to discover live experts, compare offers, and choose the help that fits them.",
+    num: "02",
+    title: "List your offerings",
+    body: "Add paid Q&A questions, one-on-one sessions, or downloadable resources. Each offering has its own price, description, and settings you control.",
   },
   {
-    title: "Only experts subscribe",
-    description:
-      "Experts pay Intellink monthly. Clients never subscribe, they just pay directly for the offer they want.",
+    num: "03",
+    title: "Clients pay, you earn",
+    body: "Clients find you through Intellink or your shared profile link, pay securely via Korapay, and you get notified instantly. Funds are settled directly to your bank.",
   },
 ];
 
-export const revalidate = 300;
+const testimonials = [
+  {
+    quote:
+      "Intellink gave me a real monetisation channel for the expertise I was giving away free on Twitter. My first week I closed three paid Q&A sessions.",
+    name: "Dr. Adaeze O.",
+    role: "Health & Nutrition Expert",
+    initials: "AO",
+  },
+  {
+    quote:
+      "The resource download feature is a game-changer. I packaged my consulting templates into a PDF and it sells while I sleep. Setup took under an hour.",
+    name: "Emeka N.",
+    role: "Business Strategy Consultant",
+    initials: "EN",
+  },
+  {
+    quote:
+      "I tried building my own booking page. It took weeks and still broke. Intellink handled payments, scheduling, and email notifications out of the box.",
+    name: "Simi A.",
+    role: "UX Design Coach",
+    initials: "SA",
+  },
+];
 
-export default async function HomePage() {
-  const marketplace = await getMarketplaceData({ limit: 3 });
-  const homeJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: siteConfig.name,
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    url: absoluteUrl("/"),
-    description: siteConfig.description,
-    offers: Object.values(SUBSCRIPTION_PLANS).map((plan) => ({
-      "@type": "Offer",
-      name: `${plan.name} plan`,
-      price: plan.price,
-      priceCurrency: "NGN",
-      category: "subscription",
-    })),
-  };
+const starterFeatures = [
+  "1 offering type (Q&A, Session, or Resource)",
+  "Unlimited client purchases",
+  "Korapay secure checkout",
+  "Email notifications",
+  "Expert profile page",
+];
 
+const proFeatures = [
+  "All 3 offering types unlocked",
+  "Unlimited client purchases",
+  "Korapay secure checkout",
+  "Priority email notifications",
+  "Expert profile page",
+  "Resource file hosting",
+  "Session booking management",
+];
+
+export default function HomePage() {
   return (
-    <main className="page-enter pb-20">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(homeJsonLd),
-        }}
-      />
-      <header className="section-shell pt-6">
-        <div className="panel motion-shell overflow-hidden bg-slate-950 text-white">
-          <AmbientBackdrop variant="hero" />
-          <div className="relative z-10 flex flex-col gap-5 px-6 py-6 md:flex-row md:items-center md:justify-between md:px-8">
-            <div className="rise-in">
-              <p className="text-lg font-semibold tracking-[0.18em] text-amber-300">
-                INTELLINK
-              </p>
-            </div>
-            <nav className="rise-in delay-1 flex flex-wrap items-center gap-3 text-sm">
-              <Link href="/discover" className="button-secondary">
-                Discover
-              </Link>
-              <Link href="/pricing" className="button-secondary">
-                Pricing
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-full px-4 py-2 font-medium text-slate-200 hover:text-white"
-              >
-                Login
-              </Link>
-            </nav>
-          </div>
+    <div className="overflow-x-hidden bg-[#030712] text-slate-300">
+      {/* ── HERO ZERO GRAVITY ─────────────────────────────────────────────── */}
+      <section className="relative isolate overflow-hidden min-h-[90vh] flex flex-col justify-center pb-24 pt-32 sm:pb-32 sm:pt-40">
+        <AmbientBackdrop variant="hero" />
 
-          <div className="relative z-10 grid gap-10 px-6 pb-14 pt-4 md:grid-cols-[1.15fr,0.85fr] md:px-8 md:pb-20 md:pt-6">
-            <div className="max-w-3xl">
-              <p className="rise-in delay-1 inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200">
-                Experts subscribe. Clients browse and buy freely.
-              </p>
-              <h1 className="rise-in delay-2 mt-6 text-4xl font-semibold leading-[1.02] text-white sm:text-5xl md:text-7xl">
-                Get paid for
-                <span className="text-sheen block">what you know.</span>
-              </h1>
-              <p className="rise-in delay-3 mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                Intellink gives experts a premium storefront and gives clients a
-                clean way to discover and buy trusted expertise. Experts are the
-                only ones who subscribe. Clients just browse and pay.
-              </p>
+        <div className="section-shell relative z-10 w-full">
+          {/* Headline drifting */}
+          <ScrollReveal delay={1} direction="up" className="mx-auto mt-12 max-w-5xl text-center float-card-alt">
+            <h1 className="text-4xl font-extrabold leading-[1.05] tracking-tighter text-white sm:text-7xl lg:text-[5.5rem] animate-float-continuous">
+              The platform where your expertise{" "}
+              <span className="text-gradient-gold block mt-2 sm:mt-4 pb-2 animate-float-alt">finally pays.</span>
+            </h1>
+            <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-slate-400 sm:text-xl font-medium">
+              Intellink lets experts sell paid Q&amp;A, one-on-one sessions, and digital resources — all from a single profile link in a frictionless zero-gravity environment.
+            </p>
+          </ScrollReveal>
 
-              <div className="rise-in delay-4 mt-10 button-row">
-                <Link href="/register" className="button-gold button-block-mobile">
-                  Start earning
-                </Link>
-                <Link href="/discover" className="button-secondary button-block-mobile">
-                  Browse experts
-                </Link>
-              </div>
+          {/* Floating CTAs */}
+          <ScrollReveal delay={3} direction="up" className="mt-14 flex flex-col items-center justify-center gap-4 sm:gap-5 sm:flex-row float-card w-full sm:w-auto px-4 sm:px-0">
+            <Link href="/register" className="button-gold-glow w-full sm:w-auto px-10 py-4 text-base sm:px-12 backdrop-blur-md text-center">
+              Start earning today
+            </Link>
+            <Link
+              href="/discover"
+              className="button-secondary w-full sm:w-auto border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-white/30 hover:bg-white/10 px-10 py-4 text-base backdrop-blur-md text-center"
+            >
+              Browse experts
+            </Link>
+          </ScrollReveal>
 
-              <div className="mt-12 grid gap-4 sm:grid-cols-3">
-                <div className="metric-card rise-in delay-3">
-                  <p className="text-sm text-slate-300">Client access</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    No subscription
+          {/* Floating Orbiting Stats */}
+          <div className="mx-auto mt-24 grid max-w-4xl grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-12 text-center pointer-events-none">
+            {[
+              { value: "3", label: "Offering types", delay: 4 },
+              { value: "100%", label: "Secure payments", delay: 5 },
+              { value: "24h", label: "Setup time", delay: 6 },
+            ].map((stat, idx) => (
+              <ScrollReveal key={stat.label} delay={stat.delay} direction="scale">
+                <div className={`panel border-white/5 bg-white/5 p-6 backdrop-blur-xl animate-float-continuous`} style={{ transform: `translateY(${idx % 2 === 0 ? '-10px' : '10px'})` }}>
+                  <p className="text-3xl font-extrabold text-white sm:text-4xl">
+                    {stat.value}
                   </p>
+                  <p className="mt-2 text-sm uppercase tracking-widest text-slate-500">{stat.label}</p>
                 </div>
-                <div className="metric-card rise-in delay-4">
-                  <p className="text-sm text-slate-300">Expert payouts</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    No commission
-                  </p>
-                </div>
-                <div className="metric-card rise-in delay-5">
-                  <p className="text-sm text-slate-300">Marketplace</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">
-                    Live discovery
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="panel glass-card rise-in delay-4 float-card border-white/10 p-5 text-white sm:p-6">
-              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/70 p-5 sm:p-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                  Expert earnings stack
-                </p>
-                <div className="mt-6 space-y-4">
-                  {Object.values(OFFERING_TYPE_OPTIONS).map((option) => (
-                    <div
-                      key={option.id}
-                      className="rise-in-soft rounded-[1.5rem] border border-white/10 bg-white/5 p-4"
-                    >
-                      <p className="font-semibold text-white">{option.name}</p>
-                      <p className="mt-2 text-sm leading-7 text-slate-300">
-                        {option.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 rounded-[1.5rem] bg-amber-300 px-5 py-4 text-slate-950">
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em]">
-                    Marketplace rule
-                  </p>
-                  <p className="mt-2 text-sm leading-7">
-                    Only subscribed experts stay visible in the marketplace. Clients
-                    can browse freely, but inactive experts disappear automatically.
-                  </p>
-                </div>
-              </div>
-            </div>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
-      </header>
+      </section>
 
-      <section className="section-shell mt-16">
-        <div className="grid gap-5 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <article
-              key={step.title}
-              className={`panel rise-in p-6 sm:p-8 ${index % 2 === 0 ? "float-card" : "float-card-alt"} delay-${index + 1}`}
+      {/* ── CONSTANTS DIVIDER ─────────────────────────────────── */}
+      <div className="py-12" aria-hidden>
+        <div className="shimmer-divider opacity-50" />
+      </div>
+
+      {/* ── ASYMMETRICAL HOW IT WORKS ────────────────────────────────────── */}
+      <section className="section-shell py-20 sm:py-32 relative" id="how-it-works">
+        <ScrollReveal direction="scale" className="text-center mb-24">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-400">
+            System Workflow
+          </p>
+          <h2 className="mt-6 text-4xl font-extrabold text-white sm:text-5xl lg:text-6xl tracking-tight">
+            Live on the platform in{" "}
+            <span className="text-gradient-gold-static block mt-2">three steps.</span>
+          </h2>
+        </ScrollReveal>
+
+        {/* Floating staggered steps */}
+        <div className="relative space-y-16 sm:space-y-32">
+          {/* Vertical connecting beam */}
+          <div
+            className="absolute left-[24px] top-4 bottom-4 w-px hidden sm:block bg-gradient-to-b from-cyan-500/0 via-cyan-500/50 to-cyan-500/0"
+            aria-hidden
+          />
+
+          {steps.map((step, i) => (
+            <ScrollReveal
+              key={step.num}
+              delay={i * 2 + 1}
+              direction={i % 2 !== 0 ? "left" : "right"}
+              className={`relative flex flex-col sm:flex-row gap-8 sm:gap-16 items-center ${i % 2 !== 0 ? 'sm:flex-row-reverse' : ''}`}
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-                Step {index + 1}
-              </p>
-              <h2 className="mt-4 text-2xl font-semibold text-slate-950">
-                {step.title}
-              </h2>
-              <p className="mt-4 text-base leading-8 text-slate-600">
-                {step.description}
-              </p>
-            </article>
+              {/* Number Node */}
+              <div className="relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-900 border border-cyan-500/30 text-lg font-bold text-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+                {step.num}
+              </div>
+              
+              <div className="panel-lift flex-1 p-6 sm:p-12 border-white/5 bg-white/5 backdrop-blur-2xl w-full animate-float-continuous">
+                <h3 className="text-2xl font-bold text-white mb-4">
+                  {step.title}
+                </h3>
+                <p className="text-base leading-relaxed text-slate-400">
+                  {step.body}
+                </p>
+              </div>
+            </ScrollReveal>
           ))}
         </div>
       </section>
 
-      <section className="section-shell mt-16">
-        <div className="stack-actions gap-6">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-              Client marketplace
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
-              Browse live offers from subscribed experts
-            </h2>
-          </div>
-          <div className="max-w-2xl">
-            <p className="text-base leading-8 text-slate-600 sm:text-lg">
-              Intellink is not just a tool for experts anymore. Clients can come
-              in, discover offers, compare expertise, and pay for the exact help
-              they want without creating a subscription.
-            </p>
-            <div className="mt-5 button-row">
-              <Link href="/discover" className="button-primary button-block-mobile">
-                Explore marketplace
-              </Link>
-              <Link href="/pricing" className="button-secondary button-block-mobile">
-                Expert pricing
-              </Link>
-            </div>
-          </div>
-        </div>
+      {/* ── SHIMMER DIVIDER ─────────────────────────────────── */}
+      <div className="py-12" aria-hidden>
+        <div className="shimmer-divider opacity-50" />
+      </div>
 
-        {marketplace.listings.length > 0 ? (
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
-            {marketplace.listings.map((listing, index) => (
-              <article
-                key={listing.id}
-                className={`panel rise-in p-6 sm:p-7 ${index % 2 === 0 ? "float-card" : "float-card-alt"}`}
+      {/* ── TESTIMONIALS TICKER/GRID ────────────────────────────────────── */}
+      <section
+        className="section-shell py-20 sm:py-32"
+        id="testimonials"
+        aria-labelledby="testimonials-heading"
+      >
+        <ScrollReveal direction="scale" className="text-center mb-16">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-teal-400">
+            Signal Received
+          </p>
+          <h2
+            id="testimonials-heading"
+            className="mt-6 text-4xl font-extrabold text-white sm:text-5xl"
+          >
+            Real experts. Real velocity.
+          </h2>
+        </ScrollReveal>
+
+        <div className="grid gap-6 sm:grid-cols-3">
+          {testimonials.map((t, i) => (
+            <ScrollReveal key={t.name} delay={i * 2 + 1} direction="up" className="h-full">
+              <figure
+                className={`flex-1 flex h-full flex-col gap-6 sm:gap-8 p-6 sm:p-10 rounded-3xl border border-white/5 bg-gradient-to-b from-white/5 to-transparent animate-float-alt`}
               >
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-                  {OFFERING_TYPE_OPTIONS[listing.type].shortName}
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold text-slate-950">
-                  {listing.title}
-                </h3>
-                <p className="mt-4 text-sm leading-7 text-slate-600">
-                  {truncateDescription(listing.description, listing.description, 130)}
-                </p>
-                <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-950">
-                    {listing.expert.name}
-                  </p>
-                  <p className="text-sm text-slate-500">@{listing.expert.username}</p>
-                </div>
-                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-2xl font-semibold text-slate-950">
-                    {formatCurrency(listing.price)}
-                  </p>
-                  <Link
-                    href={`/${listing.expert.username}/pay/${listing.id}`}
-                    className="button-gold button-block-mobile"
-                  >
-                    Buy now
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="panel mt-8 px-6 py-10 text-center text-slate-500 sm:px-8 sm:py-12">
-            Live client-facing offers will appear here as soon as experts publish.
-          </div>
-        )}
-      </section>
-
-      <section className="section-shell mt-16">
-        <div className="panel motion-shell overflow-hidden bg-slate-950 text-white">
-          <AmbientBackdrop variant="pricing" />
-          <div className="relative z-10 grid gap-8 px-6 py-10 md:grid-cols-[0.9fr,1.1fr] md:px-10 md:py-12">
-            <div className="rise-in">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
-                Pricing
-              </p>
-              <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
-                Premium access only.
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-                Experts subscribe monthly to stay visible, keep offerings live,
-                and continue earning from clients. Clients never pay for platform
-                access, only for expert offers.
-              </p>
-            </div>
-
-            <div className="grid gap-5 lg:grid-cols-2">
-              {Object.values(SUBSCRIPTION_PLANS).map((plan, index) => (
-                <article
-                  key={plan.id}
-                  className={`rounded-[2rem] border p-6 sm:p-7 ${
-                    plan.featured
-                      ? "rise-in delay-2 float-card border-amber-300 bg-white text-slate-950"
-                      : `rise-in glass-card border-white/10 text-white ${index % 2 === 0 ? "float-card" : "float-card-alt"}`
-                  }`}
+                <div
+                  className="absolute right-6 top-6 text-6xl font-serif leading-none text-white/5 select-none"
+                  aria-hidden
                 >
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-500">
-                    {plan.name}
-                  </p>
-                  <div className="mt-4 text-3xl font-semibold sm:text-4xl">
-                    {formatCurrency(plan.price)}
-                    <span className="text-base font-medium text-slate-400">
-                      {" "}
-                      / month
-                    </span>
+                  &ldquo;
+                </div>
+
+                <blockquote className="relative z-10 flex-1 text-base leading-relaxed text-slate-300">
+                  {t.quote}
+                </blockquote>
+
+                <figcaption className="flex items-center gap-4 border-t border-white/10 pt-6">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-800 border border-slate-700 text-sm font-bold text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+                    {t.initials}
                   </div>
-                  <p className="mt-4 text-sm leading-7 text-slate-500">
-                    {plan.description}
-                  </p>
-                  <ul className="mt-6 space-y-3 text-sm leading-7">
-                    <li>
-                      {plan.id === "starter"
-                        ? "One offering type only"
-                        : "All 3 offering types unlocked"}
-                    </li>
-                    <li>Profile stays visible only while subscription is active</li>
-                    <li>Clients pay experts directly with no platform cut</li>
-                  </ul>
-                </article>
-              ))}
-            </div>
-          </div>
+                  <div>
+                    <p className="text-base font-bold text-white leading-tight">
+                      {t.name}
+                    </p>
+                    <p className="text-xs tracking-wide text-slate-500 uppercase mt-1">{t.role}</p>
+                  </div>
+                </figcaption>
+              </figure>
+            </ScrollReveal>
+          ))}
         </div>
       </section>
-    </main>
+
+      {/* ── SHIMMER DIVIDER ─────────────────────────────────── */}
+      <div className="py-12" aria-hidden>
+        <div className="shimmer-divider opacity-50" />
+      </div>
+
+      {/* ── IMMERSIVE PRICING ─────────────────────────────────── */}
+      <section
+        className="section-shell py-20 sm:py-32"
+        id="pricing"
+        aria-labelledby="pricing-heading"
+      >
+        <ScrollReveal direction="scale" className="text-center mb-16">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-500">
+            System Access
+          </p>
+          <h2
+            id="pricing-heading"
+            className="mt-6 text-4xl font-extrabold text-white sm:text-5xl"
+          >
+            One flat fee. Gravity ignored.
+          </h2>
+        </ScrollReveal>
+
+        <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-2">
+          {/* Starter (Nebula Base) */}
+          <ScrollReveal direction="left" delay={2}>
+            <div className="panel flex flex-col p-8 sm:p-10 border-white/10 bg-white/5 backdrop-blur-md animate-float-continuous h-full">
+              <h3 className="text-2xl font-bold text-white">Starter</h3>
+              <p className="mt-4 text-base leading-relaxed text-slate-400">
+                Perfect for establishing your orbital presence.
+              </p>
+              <div className="mt-8 flex items-baseline gap-x-2">
+                <span className="text-5xl font-extrabold tracking-tight text-white">
+                  {formatCurrency(SUBSCRIPTION_PLANS.starter.price)}
+                </span>
+                <span className="text-sm font-semibold leading-6 text-slate-500">
+                  /month
+                </span>
+              </div>
+
+              <div className="mt-10 flex-1">
+                <ul className="space-y-4 text-sm leading-6 text-slate-300">
+                  {starterFeatures.map((feature) => (
+                    <li key={feature} className="flex gap-x-3 items-center">
+                      <span className="text-cyan-400 text-lg font-bold">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-10">
+                <Link href="/register" className="button-secondary w-full border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/30 text-center py-4">
+                  Deploy Starter
+                </Link>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Pro (Supernova) */}
+          <ScrollReveal direction="right" delay={4}>
+            <div className="panel-lift relative flex flex-col border-amber-500/30 bg-gradient-to-b from-slate-900/80 to-[#030712] p-8 sm:p-10 shadow-[0_0_50px_rgba(216,170,57,0.15)] animate-float-alt h-full">
+              <div className="absolute right-4 top-4 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-500">
+                Maximum Velocity
+              </div>
+              <h3 className="text-2xl font-bold text-white">Pro</h3>
+              <p className="mt-4 text-base leading-relaxed text-slate-400">
+                Everything unlocked for immediate asset liquidation.
+              </p>
+              <div className="mt-8 flex items-baseline gap-x-2">
+                <span className="text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-600">
+                  {formatCurrency(SUBSCRIPTION_PLANS.pro.price)}
+                </span>
+                <span className="text-sm font-semibold leading-6 text-slate-500">
+                  /month
+                </span>
+              </div>
+
+              <div className="mt-10 flex-1">
+                <ul className="space-y-4 text-sm leading-6 text-slate-300">
+                  {proFeatures.map((feature) => (
+                    <li key={feature} className="flex gap-x-3 items-center">
+                      <span className="text-amber-500 text-lg font-bold drop-shadow-[0_0_5px_rgba(216,170,57,0.8)]">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-10">
+                <Link href="/register" className="button-gold-glow w-full text-center py-4 text-lg">
+                  Deploy Pro
+                </Link>
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+    </div>
   );
 }

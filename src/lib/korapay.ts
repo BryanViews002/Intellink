@@ -60,6 +60,7 @@ type KorapayChargeVerificationResponse = {
   message: string;
   data?: {
     reference?: string;
+    payment_reference?: string;
     status?: string;
     transaction_status?: string;
     amount?: number | string;
@@ -365,7 +366,7 @@ export function buildSubscriptionCheckout(
   return {
     amount: getPlanAmount(plan),
     reference,
-    redirectPath: `/payment/success?type=subscription&reference=${reference}`,
+    redirectPath: `/payment/success`,
     metadata: {
       kind: "subscription",
       plan,
@@ -391,7 +392,7 @@ export function buildTransactionCheckout(args: {
   return {
     amount: args.amount,
     reference,
-    redirectPath: `/payment/success?type=transaction&reference=${reference}`,
+    redirectPath: `/payment/success`,
     metadata: {
       kind: "transaction",
       expert_id: args.expertId,
