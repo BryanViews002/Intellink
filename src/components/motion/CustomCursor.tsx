@@ -16,9 +16,6 @@ export function CustomCursor() {
       setPosition({ x: e.clientX, y: e.clientY });
     };
 
-    const mouseOver = () => setIsPointer(true);
-    const mouseOut = () => setIsPointer(false);
-
     window.addEventListener("mousemove", onMouseMove);
 
     return () => {

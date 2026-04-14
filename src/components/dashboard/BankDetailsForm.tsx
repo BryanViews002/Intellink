@@ -56,7 +56,7 @@ export function BankDetailsForm({
   return (
     <div className="space-y-6">
       <div className="panel motion-shell rise-in overflow-hidden bg-slate-950 p-6 text-white sm:p-8">
-        <AmbientBackdrop variant="bank" />
+        <AmbientBackdrop variant="dashboard" />
         <div className="relative z-10">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">
             Payout setup
