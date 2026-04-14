@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { applyBrowserSession } from "@/lib/browser-auth";
-import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { ScrollReveal } from "@/components/motion/ScrollReveal";
 
 export default function RegisterPage() {
@@ -21,13 +20,11 @@ export default function RegisterPage() {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <main className="section-shell relative flex flex-1 items-center justify-center py-8 lg:py-16">
-      <AmbientBackdrop variant="pricing" />
-      <ScrollReveal delay={1} direction="up" className="relative z-10 mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.95fr,1.05fr] animate-float-continuous w-full">
+    <main className="section-shell relative flex flex-1 items-center justify-center py-6">
+      <ScrollReveal delay={1} direction="up" className="relative z-10 mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[0.95fr,1.05fr]">
         
-        {/* Info Column */}
-        <section className="panel-lift flex flex-col justify-center border-white/10 bg-black/40 backdrop-blur-2xl p-8 sm:p-12 h-full text-white">
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-500 drop-shadow-[0_0_8px_rgba(216,170,57,0.8)]">
+        <section className="panel-lift hidden lg:flex flex-col justify-center border-white/10 bg-black/40 backdrop-blur-2xl p-8 sm:p-12 text-white">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-500">
             Expert onboarding
           </p>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl tracking-tight">
@@ -38,26 +35,26 @@ export default function RegisterPage() {
           </p>
           <div className="mt-10 space-y-4 text-sm leading-7 text-slate-300">
             <p className="flex items-center gap-3">
-              <span className="font-bold text-amber-500 drop-shadow-[0_0_5px_rgba(216,170,57,0.5)]">✓</span>
+              <span className="font-bold text-amber-500">✓</span>
               <span><span className="font-semibold text-white">Promo: BRYAN</span> = Free Pro month (first 20 users)</span>
             </p>
             <p className="flex items-center gap-3">
-              <span className="font-bold text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.5)]">✓</span>
+              <span className="font-bold text-cyan-400">✓</span>
               <span>No free tier. No trial. Premium only.</span>
             </p>
             <p className="flex items-center gap-3">
-              <span className="font-bold text-cyan-400 drop-shadow-[0_0_5px_rgba(6,182,212,0.5)]">✓</span>
+              <span className="font-bold text-cyan-400">✓</span>
               <span>Inactive subscriptions hide profile automatically.</span>
             </p>
             <p className="flex items-center gap-3">
-              <span className="font-bold text-amber-500 drop-shadow-[0_0_5px_rgba(216,170,57,0.5)]">✓</span>
+              <span className="font-bold text-amber-500">✓</span>
               <span>Pro unlocks Q&A, Sessions, Resources.</span>
             </p>
           </div>
         </section>
 
         {/* Form Column */}
-        <section className="panel-lift border-white/5 bg-gradient-to-b from-slate-900/80 to-[#030712]/90 backdrop-blur-3xl p-8 sm:p-12 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <section className="panel-lift border-white/5 bg-[#0d1117] p-6 sm:p-10">
           <div className="stack-actions">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-500">
@@ -119,7 +116,7 @@ export default function RegisterPage() {
                   value={form.name}
                   onChange={(e) => setForm({...form, name: e.target.value})}
                   required
-                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)] placeholder:text-slate-600"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30 placeholder:text-slate-600"
                 />
               </label>
               <label className="space-y-2">
@@ -140,7 +137,7 @@ export default function RegisterPage() {
                 value={form.username}
                 onChange={(e) => setForm({...form, username: e.target.value})}
                 required
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)] placeholder:text-slate-600"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30 placeholder:text-slate-600"
                 placeholder="coachmira"
               />
             </label>
@@ -153,7 +150,7 @@ export default function RegisterPage() {
                   value={form.password}
                   onChange={(e) => setForm({...form, password: e.target.value})}
                   required
-                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30"
                   minLength={8}
                 />
               </label>
@@ -164,7 +161,7 @@ export default function RegisterPage() {
                   value={form.confirmPassword}
                   onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
                   required
-                  className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30"
                 />
               </label>
             </div>
@@ -175,7 +172,7 @@ export default function RegisterPage() {
                 value={form.promoCode}
                 onChange={(e) => setForm({...form, promoCode: e.target.value})}
                 placeholder="BRYAN"
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-amber-500/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(216,170,57,0.15)] placeholder:text-slate-600"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30 placeholder:text-slate-600"
               />
             </label>
 
@@ -186,7 +183,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="button-gold-glow w-full sm:w-auto px-10 disabled:cursor-not-allowed disabled:opacity-60 h-14"
+                className="button-gold w-full sm:w-auto px-10 disabled:cursor-not-allowed disabled:opacity-60 h-12"
               >
                 {isPending ? "Creating Account..." : "Create Account"}
               </button>

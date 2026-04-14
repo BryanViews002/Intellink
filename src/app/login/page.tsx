@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { applyBrowserSession } from "@/lib/browser-auth";
-import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { ScrollReveal } from "@/components/motion/ScrollReveal";
 
 export default function LoginPage() {
@@ -20,11 +19,10 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <main className="section-shell relative flex flex-1 items-center justify-center py-8 lg:py-16">
-      <AmbientBackdrop variant="dashboard" />
-      <ScrollReveal delay={1} direction="up" className="relative z-10 mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-[0.85fr,1.15fr] animate-float-continuous w-full">
-        <section className="panel-lift flex flex-col justify-center border-white/10 bg-black/40 backdrop-blur-2xl p-8 sm:p-12 h-full">
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">
+    <main className="section-shell relative flex flex-1 items-center justify-center py-6">
+      <ScrollReveal delay={1} direction="up" className="relative z-10 mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-[0.85fr,1.15fr]">
+        <section className="panel-lift hidden lg:flex flex-col justify-center border-white/10 bg-black/40 backdrop-blur-2xl p-8 sm:p-12">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-cyan-400">
             Welcome back
           </p>
           <h1 className="mt-4 text-3xl font-extrabold text-white sm:text-4xl tracking-tight">
@@ -36,7 +34,7 @@ export default function LoginPage() {
           </p>
         </section>
 
-        <section className="panel-lift border-white/5 bg-gradient-to-b from-slate-900/80 to-[#030712]/90 backdrop-blur-3xl p-8 sm:p-12 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+        <section className="panel-lift border-white/5 bg-[#0d1117] p-6 sm:p-10">
           <div className="stack-actions">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-500">
@@ -105,7 +103,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-amber-500/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(216,170,57,0.15)] placeholder:text-slate-600"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30 placeholder:text-slate-600"
                 placeholder="you@example.com or @yourname"
               />
             </label>
@@ -117,7 +115,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
-                className="w-full rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none transition focus:border-amber-500/50 focus:bg-white/5 focus:shadow-[0_0_15px_rgba(216,170,57,0.15)]"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 text-white outline-none transition focus:border-white/30"
               />
             </label>
 
@@ -139,7 +137,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="button-gold-glow w-full sm:w-auto px-10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="button-gold w-full sm:w-auto px-10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPending ? "Signing in..." : "Sign in"}
               </button>
