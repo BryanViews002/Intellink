@@ -20,7 +20,7 @@ export const SUBSCRIPTION_PLANS: Record<
   starter: {
     id: "starter",
     name: "Starter",
-    price: 3500,
+    price: 2500,
     durationDays: 30,
     tagline: "Start with one clear offer",
     description:
@@ -30,7 +30,7 @@ export const SUBSCRIPTION_PLANS: Record<
   pro: {
     id: "pro",
     name: "Pro",
-    price: 7000,
+    price: 4000,
     durationDays: 30,
     tagline: "Unlock the full earning stack",
     description:

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { getBrowserSupabaseClient } from "@/lib/supabase-browser";
 import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
