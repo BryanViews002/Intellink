@@ -60,11 +60,26 @@ export default async function PaymentSuccessPage({
 
   const type = derivePaymentType(reference);
 
-  const verification = await verifyKorapayCharge(reference);
-  const verifiedStatus =
+  let verification = await verifyKorapayCharge(reference);
+  let verifiedStatus =
     verification.data?.status?.toLowerCase() ||
     verification.data?.transaction_status?.toLowerCase() ||
     "";
+
+  // Korapay sometimes returns "processing" immediately after a successful redirect
+  if (["pending", "processing"].includes(verifiedStatus)) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      verification = await verifyKorapayCharge(reference);
+      verifiedStatus =
+        verification.data?.status?.toLowerCase() ||
+        verification.data?.transaction_status?.toLowerCase() ||
+        "";
+      if (!["pending", "processing"].includes(verifiedStatus)) {
+        break;
+      }
+    }
+  }
 
   console.log("Payment success page verification:", {
     rawReference,

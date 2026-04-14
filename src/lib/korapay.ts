@@ -150,6 +150,7 @@ export async function initializeKorapayPayment({
       notification_url: `${BASE_URL}/api/payment/webhook`,
       redirect_url: `${BASE_URL}${redirectPath}`,
       metadata,
+      channels: ["card", "bank_transfer"],
     }),
   });
 
