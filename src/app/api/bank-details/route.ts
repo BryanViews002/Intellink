@@ -67,9 +67,37 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Bank details save error:", error);
-    return apiError(
-      error instanceof Error ? error.message : "Unable to save bank details",
-      500,
-    );
+
+    const errorMessage =
+      error instanceof Error ? error.message.toLowerCase() : "unknown error";
+
+    if (
+      errorMessage.includes("401") ||
+      errorMessage.includes("unauthorized")
+    ) {
+      return apiError(
+        "Payment service authentication failed. Please contact support.",
+        500,
+      );
+    }
+
+    if (
+      errorMessage.includes("404") ||
+      errorMessage.includes("not found") ||
+      errorMessage.includes("invalid account")
+    ) {
+      return apiError("Bank account not found. Please check the account number.");
+    }
+
+    if (
+      errorMessage.includes("invalid") ||
+      errorMessage.includes("validation") ||
+      errorMessage.includes("does not exist") ||
+      errorMessage.includes("unknown bank")
+    ) {
+      return apiError("Invalid bank details. Please check the bank and try again.");
+    }
+
+    return apiError("Unable to save bank details at this time. Please try again.", 500);
   }
 }

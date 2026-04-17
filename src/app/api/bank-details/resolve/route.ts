@@ -84,9 +84,10 @@ export async function POST(request: NextRequest) {
       if (
         errorMessage.includes("invalid") ||
         errorMessage.includes("validation") ||
-        errorMessage.includes("does not exist")
+        errorMessage.includes("does not exist") ||
+        errorMessage.includes("unknown bank")
       ) {
-        return apiError("Invalid bank details. Please check and try again.");
+        return apiError("Invalid bank details. Please check the bank and try again.");
       }
 
       // If Flutterwave throws a normalizer error or generic error
