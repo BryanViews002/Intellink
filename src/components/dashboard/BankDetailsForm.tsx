@@ -90,7 +90,7 @@ export function BankDetailsForm({
         <div className="grid gap-5 md:grid-cols-2">
           <label className="space-y-2">
             <span className="text-sm font-semibold text-slate-700">
-              Bank Code {banks.length === 0 && <span className="text-amber-600">(manual entry required)</span>}
+              Bank {banks.length === 0 && <span className="text-amber-600">(manual entry required)</span>}
             </span>
             {banks.length > 0 ? (
               <select

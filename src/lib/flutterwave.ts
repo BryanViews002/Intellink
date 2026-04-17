@@ -242,45 +242,66 @@ export async function verifyFlutterwaveTransaction(
 }
 
 /**
- * List Nigerian banks via Flutterwave.
+ * List Nigerian banks via Flutterwave, with a fallback to Paystack open API if Flutterwave is unavailable.
  */
 export async function listNigerianBanks(): Promise<NigerianBank[]> {
-  const token = await getAuthToken();
+  try {
+    const token = await getAuthToken();
 
-  console.log("Fetching Nigerian banks from Flutterwave...");
+    console.log("Fetching Nigerian banks from Flutterwave...");
 
-  const response = await fetch(`${FLW_API_URL}/banks/NG`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    const response = await fetch(`${FLW_API_URL}/banks/NG`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const rawText = await response.text();
+    let payload: any = null;
+    try {
+      payload = JSON.parse(rawText);
+    } catch {
+      // Ignored
+    }
+
+    if (response.ok && payload?.status === "success" && payload.data) {
+      const banks = payload.data.map((bank: any) => ({
+        name: bank.name,
+        slug: bank.name.toLowerCase().replace(/[\s/]+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        code: bank.code,
+        country: "NG",
+      })) as NigerianBank[];
+
+      console.log(`Loaded ${banks.length} banks from Flutterwave`);
+      return banks;
+    }
+    
+    console.warn("Flutterwave bank fetch returned non-success response, falling back...", payload);
+  } catch (error) {
+    console.error("Flutterwave bank fetch failed, falling back to open API", error);
+  }
+
+  // Fallback to open Paystack API
+  console.log("Fetching Nigerian banks from Paystack fallback...");
+  const response = await fetch("https://api.paystack.co/bank?country=nigeria", {
     cache: "no-store",
   });
-
-  const rawText = await response.text();
-  console.log("Flutterwave banks response status:", response.status);
-  console.log("Flutterwave banks raw response:", rawText.substring(0, 500));
-
-  let payload: { status: string; message?: string; data?: { id: number; code: string; name: string }[] } | null = null;
-  try {
-    payload = JSON.parse(rawText);
-  } catch {
-    console.error("Failed to parse Flutterwave banks response as JSON");
+  
+  const payload = await response.json();
+  if (!response.ok || !payload.status) {
+    throw new Error(payload?.message || "Unable to load Nigerian banks from fallback API");
   }
 
-  if (!response.ok || payload?.status !== "success") {
-    throw new Error(payload?.message || `Unable to load Nigerian banks (HTTP ${response.status})`);
-  }
-
-  const banks = (payload?.data ?? []).map((bank) => ({
+  const banks = (payload.data ?? []).map((bank: any) => ({
     name: bank.name,
-    slug: bank.name.toLowerCase().replace(/[\s/]+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    slug: bank.slug || bank.name.toLowerCase().replace(/[\s/]+/g, "-"),
     code: bank.code,
     country: "NG",
   })) as NigerianBank[];
 
-  console.log(`Loaded ${banks.length} banks from Flutterwave`);
-
+  console.log(`Loaded ${banks.length} banks from Paystack fallback`);
   return banks;
 }
 
