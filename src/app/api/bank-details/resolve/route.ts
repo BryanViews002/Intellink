@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       console.error("Flutterwave resolve error:", resolveError);
 
       const errorMessage =
-        resolveError instanceof Error ? resolveError.message : "Unknown error";
+        resolveError instanceof Error ? resolveError.message.toLowerCase() : "unknown error";
 
       if (
         errorMessage.includes("401") ||
@@ -76,19 +76,21 @@ export async function POST(request: NextRequest) {
       if (
         errorMessage.includes("404") ||
         errorMessage.includes("not found") ||
-        errorMessage.includes("Invalid account")
+        errorMessage.includes("invalid account")
       ) {
         return apiError("Bank account not found. Please check the account number.");
       }
 
       if (
         errorMessage.includes("invalid") ||
-        errorMessage.includes("validation")
+        errorMessage.includes("validation") ||
+        errorMessage.includes("does not exist")
       ) {
         return apiError("Invalid bank details. Please check and try again.");
       }
 
-      return apiError("Unable to verify bank account. Please try again.", 500);
+      // If Flutterwave throws a normalizer error or generic error
+      return apiError("Unable to verify bank account at this time. Please try again.", 500);
     }
   } catch (error) {
     console.error("Bank resolve error:", error);
