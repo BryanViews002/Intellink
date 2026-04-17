@@ -6,15 +6,14 @@ import {
   syncSubscriptionStatus,
   validateRequired,
 } from "@/lib/auth";
-import { resolveNigerianBankAccount } from "@/lib/korapay";
+import { resolveNigerianBankAccount } from "@/lib/flutterwave";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Korapay is configured
-    if (!process.env.KORAPAY_SECRET_KEY) {
-      console.error("KORAPAY_SECRET_KEY is not configured");
+    if (!process.env.FLW_SECRET_KEY) {
+      console.error("FLW_SECRET_KEY is not configured");
       return apiError("Payment service is not properly configured. Please contact support.", 500);
     }
 
@@ -57,30 +56,38 @@ export async function POST(request: NextRequest) {
         accountNumber: bankAccount,
       });
 
-      return apiResponse(
-        {
-          account,
-        },
-        "Account verified successfully",
-      );
-    } catch (korapayError) {
-      console.error("Korapay resolve error:", korapayError);
-      
-      // Handle specific Korapay errors
-      const errorMessage = korapayError instanceof Error ? korapayError.message : "Unknown error";
-      
-      if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
-        return apiError("Payment service authentication failed. Please contact support.", 500);
+      return apiResponse({ account }, "Account verified successfully");
+    } catch (resolveError) {
+      console.error("Flutterwave resolve error:", resolveError);
+
+      const errorMessage =
+        resolveError instanceof Error ? resolveError.message : "Unknown error";
+
+      if (
+        errorMessage.includes("401") ||
+        errorMessage.includes("unauthorized")
+      ) {
+        return apiError(
+          "Payment service authentication failed. Please contact support.",
+          500,
+        );
       }
-      
-      if (errorMessage.includes("404") || errorMessage.includes("not found")) {
+
+      if (
+        errorMessage.includes("404") ||
+        errorMessage.includes("not found") ||
+        errorMessage.includes("Invalid account")
+      ) {
         return apiError("Bank account not found. Please check the account number.");
       }
-      
-      if (errorMessage.includes("invalid") || errorMessage.includes("validation")) {
+
+      if (
+        errorMessage.includes("invalid") ||
+        errorMessage.includes("validation")
+      ) {
         return apiError("Invalid bank details. Please check and try again.");
       }
-      
+
       return apiError("Unable to verify bank account. Please try again.", 500);
     }
   } catch (error) {

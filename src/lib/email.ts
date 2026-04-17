@@ -2,9 +2,9 @@ import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY ?? "";
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const fromEmail = process.env.ADMIN_EMAIL
-  ? `Intellink <${process.env.ADMIN_EMAIL}>`
-  : "Intellink <onboarding@resend.dev>";
+const fromEmail = process.env.NODE_ENV === "development" || !process.env.ADMIN_EMAIL
+  ? "Intellink <onboarding@resend.dev>"
+  : `Intellink <${process.env.ADMIN_EMAIL}>`;
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
 async function sendEmail(args: {
@@ -19,12 +19,28 @@ async function sendEmail(args: {
     return;
   }
 
-  await resend.emails.send({
+  // Resend restricts sending to unverified emails when using their testing domain.
+  // When testing, we force the recipient to the admin email so you can actually receive them.
+  let toAddress = args.to;
+  if (fromEmail.includes("onboarding@resend.dev") && process.env.ADMIN_EMAIL) {
+    console.log(
+      `[Email Test Mode] Rerouting email meant for ${args.to} to ${process.env.ADMIN_EMAIL} to bypass Resend test domain restrictions.`,
+    );
+    toAddress = process.env.ADMIN_EMAIL;
+  }
+
+  const { data, error } = await resend.emails.send({
     from: fromEmail,
-    to: args.to,
+    to: toAddress,
     subject: args.subject,
     html: args.html,
   });
+
+  if (error) {
+    console.error(`[Email] Failed to send email to ${toAddress}:`, error);
+  } else {
+    console.log(`[Email] Successfully sent "${args.subject}" to ${toAddress}`, data);
+  }
 }
 
 export async function sendSubscriptionWelcomeEmail(

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { verifyKorapayCharge } from "@/lib/korapay";
+import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
 import { buildReviewPath } from "@/lib/reviews";
 import { processTransactionCharge } from "@/lib/transaction-processing";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -11,30 +11,26 @@ import { type TransactionContext } from "@/types";
 
 type PaymentSuccessPageProps = {
   searchParams: {
+    // Flutterwave redirect params
+    transaction_id?: string | string[];
+    tx_ref?: string | string[];
+    status?: string | string[];
+    // Legacy Korapay param (kept for safety)
     reference?: string | string[];
   };
 };
 
-function normalizeReference(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  return trimmed.split(/[?&]reference=/)[0]?.trim() || undefined;
+function first(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0]?.trim() || undefined;
+  return value?.trim() || undefined;
 }
 
-function getReference(value: string | string[] | undefined): string | undefined {
-  if (Array.isArray(value)) {
-    for (const candidate of value) {
-      const normalized = normalizeReference(candidate);
-      if (normalized) return normalized;
-    }
-    return undefined;
-  }
-  return normalizeReference(value);
-}
-
-function derivePaymentType(reference: string): "subscription" | "transaction" | "payment" {
-  if (reference.startsWith("SUB_")) return "subscription";
-  if (reference.startsWith("INTLNK_")) return "transaction";
+/**
+ * Derive the payment type from the tx_ref / reference prefix.
+ */
+function derivePaymentType(ref: string): "subscription" | "transaction" | "payment" {
+  if (ref.startsWith("SUB_")) return "subscription";
+  if (ref.startsWith("INTLNK_")) return "transaction";
   return "payment";
 }
 
@@ -49,60 +45,69 @@ export const metadata: Metadata = buildMetadata({
 export default async function PaymentSuccessPage({
   searchParams,
 }: PaymentSuccessPageProps) {
-  const rawReference = Array.isArray(searchParams.reference)
-    ? searchParams.reference.join(",")
-    : searchParams.reference;
-  const reference = getReference(searchParams.reference);
+  // ── Parse Flutterwave's redirect params ──────────────────────────────────
+  const transactionId = first(searchParams.transaction_id);
+  const txRef = first(searchParams.tx_ref) ?? first(searchParams.reference);
+  const statusParam = (first(searchParams.status) ?? "").toLowerCase();
 
-  if (!reference) {
+  // TEMP DEBUG: log every param FLW sends on redirect
+  console.log("PaymentSuccessPage RAW searchParams:", JSON.stringify(searchParams));
+  console.log("PaymentSuccessPage FLW params:", { transactionId, txRef, statusParam });
+
+  if (!txRef) {
+    console.error("PaymentSuccessPage: no tx_ref found in params — redirecting to failed");
     redirect("/payment/failed");
   }
 
-  const type = derivePaymentType(reference);
+  const type = derivePaymentType(txRef);
 
-  let verification = await verifyKorapayCharge(reference);
-  let verifiedStatus =
-    verification.data?.status?.toLowerCase() ||
-    verification.data?.transaction_status?.toLowerCase() ||
-    "";
+  // ── Fast-path: FLW already told us it was successful ─────────────────────
+  // If FLW redirected with status=successful AND we have a numeric transaction_id,
+  // skip the verify API call initially and check the DB first (avoids the
+  // "pending immediately after redirect" problem).
+  let verifiedStatus = statusParam === "successful" ? "successful" : "";
 
-  // Korapay sometimes returns "processing" immediately after a successful redirect
-  if (["pending", "processing"].includes(verifiedStatus)) {
-    for (let attempt = 0; attempt < 4; attempt++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      verification = await verifyKorapayCharge(reference);
-      verifiedStatus =
-        verification.data?.status?.toLowerCase() ||
-        verification.data?.transaction_status?.toLowerCase() ||
-        "";
-      if (!["pending", "processing"].includes(verifiedStatus)) {
-        break;
+  // ── Verify with Flutterwave API (using numeric transaction_id) ────────────
+  if (transactionId) {
+    try {
+      const verification = await verifyFlutterwaveTransaction(transactionId);
+      const apiStatus = (verification?.data?.status ?? "").toLowerCase();
+
+      console.log("FLW verify result:", { apiStatus, txRef: verification?.data?.tx_ref });
+
+      // Trust the API response; if it says successful, use that
+      if (apiStatus === "successful") {
+        verifiedStatus = "successful";
+      } else if (["failed", "cancelled", "canceled", "abandoned"].includes(apiStatus)) {
+        verifiedStatus = apiStatus;
+      } else if (apiStatus === "pending" || apiStatus === "processing") {
+        // FLW returned pending immediately after redirect — but the URL param
+        // already said successful, so trust the URL param and process the DB.
+        // We'll still use verifiedStatus = "successful" from the URL fast-path.
+        if (statusParam !== "successful") {
+          verifiedStatus = apiStatus;
+        }
       }
+    } catch (err) {
+      console.error("FLW verify call failed:", err);
+      // Fall back to URL status param
     }
   }
 
-  console.log("Payment success page verification:", {
-    rawReference,
-    reference,
-    type,
-    verificationStatus: verification.status,
-    verifiedStatus,
-    verificationMessage: verification.message,
-  });
-
-  if (!verification.status || ["failed", "cancelled", "canceled", "abandoned"].includes(verifiedStatus)) {
-    redirect(`/payment/failed?type=${type ?? "payment"}&reference=${reference}`);
+  // ── Hard fail ─────────────────────────────────────────────────────────────
+  if (["failed", "cancelled", "canceled", "abandoned"].includes(verifiedStatus)) {
+    redirect(`/payment/failed?type=${type}&reference=${txRef}`);
   }
 
   // ── SUBSCRIPTION FLOW ──────────────────────────────────────────────────────
-  if (type === "subscription" && verifiedStatus === "success") {
+  if (type === "subscription" && verifiedStatus === "successful") {
     // Allow up to ~5s for webhook to activate subscription before reading DB
     let subscription = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       const { data } = await supabaseAdmin
         .from("subscriptions")
         .select("status, plan")
-        .eq("korapay_reference", reference)
+        .eq("korapay_reference", txRef)
         .maybeSingle();
       if (data?.status === "active") { subscription = data; break; }
       if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
@@ -115,7 +120,6 @@ export default async function PaymentSuccessPage({
       <main className="section-shell relative flex flex-1 items-center justify-center py-8 lg:py-16">
         <AmbientBackdrop variant="hero" />
         <section className="panel-lift relative z-10 mx-auto max-w-2xl border-emerald-500/20 bg-gradient-to-b from-emerald-950/40 to-[#030712]/90 backdrop-blur-3xl px-8 py-12 text-center shadow-[0_0_60px_rgba(16,185,129,0.15)]">
-          {/* Success icon */}
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
             <svg className="h-10 w-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -165,7 +169,7 @@ export default async function PaymentSuccessPage({
             Your payment is being confirmed.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-slate-400">
-            Korapay is finalizing your payment. This usually completes within a
+            Flutterwave is finalizing your payment. This usually completes within a
             minute. Your dashboard will activate automatically — no action needed.
           </p>
           <div className="mt-10">
@@ -183,15 +187,40 @@ export default async function PaymentSuccessPage({
     let processed = null;
     let dbTransaction = null;
 
-    if (verifiedStatus === "success") {
+    if (verifiedStatus === "successful") {
+      // ── LOCAL DEV ONLY: Fire webhook explicitly to trigger payouts ──
+      if (process.env.NODE_ENV === "development") {
+        try {
+          console.log("DEV: Simulating webhook locally to trigger payouts...");
+          const protocol = process.env.NEXT_PUBLIC_BASE_URL?.startsWith("https") ? "https" : "http";
+          await fetch(`${protocol}://localhost:3000/api/payment/webhook`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "verifi-hash": process.env.FLW_SECRET_HASH ?? "", // Use the hash from env
+            },
+            body: JSON.stringify({
+              event: "charge.completed",
+              data: {
+                status: "successful",
+                tx_ref: txRef,
+                id: transactionId,
+              },
+            }),
+          });
+        } catch (e) {
+          console.error("DEV: Simulated webhook failed", e);
+        }
+      }
+
       // processTransactionCharge is idempotent — safe to call before/after webhook
-      processed = await processTransactionCharge(reference);
+      processed = await processTransactionCharge(txRef);
 
       if (!processed) {
         // Webhook hasn't run yet — retry up to 3× with 1.5s gaps
         for (let attempt = 0; attempt < 3; attempt++) {
           await new Promise((r) => setTimeout(r, 1500));
-          processed = await processTransactionCharge(reference);
+          processed = await processTransactionCharge(txRef);
           if (processed) break;
         }
       }
@@ -201,7 +230,7 @@ export default async function PaymentSuccessPage({
         const { data } = await supabaseAdmin
           .from("transactions")
           .select("status, offering_type, metadata")
-          .eq("korapay_reference", reference)
+          .eq("korapay_reference", txRef)
           .maybeSingle();
         dbTransaction = data;
       }
@@ -211,10 +240,9 @@ export default async function PaymentSuccessPage({
     const resourceDownloadUrl = processed?.resourceDownloadUrl ?? null;
     const reviewHref = processed?.reviewUrl ?? (() => {
       const meta = (dbTransaction?.metadata ?? {}) as TransactionContext;
-      return meta.reviewToken ? buildReviewPath(reference, meta.reviewToken) : null;
+      return meta.reviewToken ? buildReviewPath(txRef, meta.reviewToken) : null;
     })();
 
-    // Decide the primary CTA based on what they bought
     const getOfferingCopy = () => {
       if (offeringType === "resource") {
         return {
@@ -246,14 +274,13 @@ export default async function PaymentSuccessPage({
       };
     };
 
-    if (verifiedStatus === "success") {
+    if (verifiedStatus === "successful") {
       const { heading, body, eyebrow } = getOfferingCopy();
 
       return (
         <main className="section-shell relative flex flex-1 items-center justify-center py-8 lg:py-16">
           <AmbientBackdrop variant="hero" />
           <section className="panel-lift relative z-10 mx-auto w-full max-w-2xl border-emerald-500/20 bg-gradient-to-b from-emerald-950/30 to-[#030712]/90 backdrop-blur-3xl px-8 py-12 shadow-[0_0_60px_rgba(16,185,129,0.15)]">
-            {/* Success badge */}
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                 <svg className="h-7 w-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -274,7 +301,6 @@ export default async function PaymentSuccessPage({
               {body}
             </p>
 
-            {/* ── RESOURCE DOWNLOAD CTA ── */}
             {resourceDownloadUrl && (
               <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-6">
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-400">
@@ -299,7 +325,6 @@ export default async function PaymentSuccessPage({
               </div>
             )}
 
-            {/* ── REVIEW CTA ── */}
             {reviewHref && (
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-6 py-5">
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-500">
@@ -330,7 +355,7 @@ export default async function PaymentSuccessPage({
       );
     }
 
-    // Transaction payment pending
+    // Transaction payment pending / unknown
     return (
       <main className="section-shell relative flex flex-1 items-center justify-center py-8 lg:py-16">
         <AmbientBackdrop variant="dashboard" />
@@ -345,7 +370,7 @@ export default async function PaymentSuccessPage({
             Your payment is being confirmed.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-slate-400">
-            Korapay is still finalizing your payment. This usually takes under a
+            Flutterwave is still finalizing your payment. This usually takes under a
             minute. You will receive a confirmation email once the expert is notified.
           </p>
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
@@ -374,7 +399,7 @@ export default async function PaymentSuccessPage({
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-slate-400">
           Your payment request reached Intellink. We are waiting for the final
-          confirmation from Korapay. Check your email for updates.
+          confirmation from Flutterwave. Check your email for updates.
         </p>
         <div className="mt-10">
           <Link href="/" className="button-secondary border-white/10 bg-white/5 text-slate-300 hover:text-white px-10 py-4">

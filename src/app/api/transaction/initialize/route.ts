@@ -5,7 +5,7 @@ import {
   canExpertAcceptPurchases,
   validateRequired,
 } from "@/lib/auth";
-import { initializeKorapayPayment, buildTransactionCheckout } from "@/lib/korapay";
+import { initializeFlutterwavePayment, buildTransactionCheckout } from "@/lib/flutterwave";
 import { createReviewToken } from "@/lib/reviews";
 import { supabaseAdmin } from "@/lib/supabase";
 import { type OfferingType, type TransactionContext } from "@/types";
@@ -29,15 +29,16 @@ export async function POST(request: NextRequest) {
     const clientName = body.client_name.trim();
     const clientEmail = body.client_email.trim().toLowerCase();
 
-    const { data: offering } = await supabaseAdmin
+    const { data: offering, error: offeringError } = await supabaseAdmin
       .from("offerings")
       .select("id, user_id, type, title, price, is_active")
       .eq("id", offeringId)
-      .eq("is_active", true)
       .single();
 
+    console.log("DEBUG Initialize Checkout:", { offeringId, offering, offeringError });
+
     if (!offering) {
-      return apiError("Offering not found", 404);
+      return apiError(`Offering not found (ID: ${offeringId}) - error: ${offeringError?.message || 'none'}`, 404);
     }
 
     const { data: expert } = await supabaseAdmin
@@ -118,20 +119,20 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const payment = await initializeKorapayPayment({
+      const payment = await initializeFlutterwavePayment({
         amount: checkout.amount,
         reference: checkout.reference,
         customer: checkout.customer,
         redirectPath: checkout.redirectPath,
-        metadata: checkout.metadata,
+        meta: checkout.meta,
       });
 
       return apiResponse(
         {
           reference: checkout.reference,
           transaction_id: transaction.id,
-          checkout_url:
-            payment?.data?.checkout_url || payment?.data?.checkoutUrl || null,
+          // Flutterwave returns the checkout URL as `data.link`
+          checkout_url: payment?.data?.link ?? null,
         },
         "Payment initialized successfully",
       );

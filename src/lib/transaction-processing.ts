@@ -112,6 +112,19 @@ export async function processTransactionCharge(
     }
   }
 
+  if (!alreadyProcessed && offering.type === "resource") {
+    try {
+      await sendResourceSoldEmail(
+        expert.email,
+        expert.name,
+        transaction.client_name,
+        offering.title,
+      );
+    } catch (error) {
+      console.error("Resource sale email failed:", error);
+    }
+  }
+
   let resourceDownloadUrl: string | null = null;
 
   if (offering.type === "resource" && offering.file_url) {
@@ -124,17 +137,6 @@ export async function processTransactionCharge(
         resourceDownloadUrl = signedUrlData.signedUrl;
 
         if (!alreadyProcessed) {
-          try {
-            await sendResourceSoldEmail(
-              expert.email,
-              expert.name,
-              transaction.client_name,
-              offering.title,
-            );
-          } catch (error) {
-            console.error("Resource sale email failed:", error);
-          }
-
           try {
             await sendResourceDownloadEmail(
               transaction.client_email,
@@ -150,17 +152,6 @@ export async function processTransactionCharge(
       }
     } catch (error) {
       console.error("Resource signed URL generation failed:", error);
-    }
-  } else if (!alreadyProcessed && offering.type === "resource") {
-    try {
-      await sendResourceSoldEmail(
-        expert.email,
-        expert.name,
-        transaction.client_name,
-        offering.title,
-      );
-    } catch (error) {
-      console.error("Resource sale email failed:", error);
     }
   }
 

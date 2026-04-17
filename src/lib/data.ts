@@ -9,7 +9,7 @@ import {
   syncSubscriptionStatus,
 } from "@/lib/auth";
 import { calculateDaysRemaining } from "@/lib/format";
-import { listNigerianBanks } from "@/lib/korapay";
+import { listNigerianBanks } from "@/lib/flutterwave";
 import { getExpertReviewSummary } from "@/lib/reviews";
 import {
   type ExpertReview,
@@ -80,19 +80,26 @@ async function getRecentExpertReviews(
     const transaction = Array.isArray(rating.transactions)
       ? rating.transactions[0]
       : rating.transactions;
-    const offering = Array.isArray(transaction?.offerings)
-      ? transaction.offerings[0]
-      : transaction?.offerings;
+
+    const offering = transaction
+      ? Array.isArray(transaction.offerings)
+        ? transaction.offerings[0]
+        : transaction.offerings
+      : null;
 
     return {
-      id: rating.id,
+      id: String(rating.id),
       stars: Number(rating.stars),
-      comment: rating.comment,
-      created_at: rating.created_at,
-      client_name: transaction?.client_name ?? "Anonymous client",
-      offering_title: offering?.title ?? "Expert offering",
-      offering_type: (transaction?.offering_type ?? "qa") as OfferingType,
-    };
+      comment: rating.comment ? String(rating.comment) : null,
+      created_at: String(rating.created_at),
+      client_name: transaction?.client_name
+        ? String(transaction.client_name)
+        : "Anonymous",
+      offering_type: transaction?.offering_type
+        ? String(transaction.offering_type)
+        : "unknown",
+      offering_title: offering?.title ? String(offering.title) : null,
+    } as ExpertReview;
   });
 }
 
@@ -104,123 +111,108 @@ export async function getDashboardData(userId: string) {
   }
 
   const [
+    { data: offerings },
+    { data: rawTransactions },
+    { data: payouts },
     { data: questions },
     { data: sessions },
-    { data: transactions },
     reviews,
     reviewSummary,
-  ] =
-    await Promise.all([
-      supabaseAdmin
-        .from("questions")
-        .select(
-          `
-            id,
-            question_text,
-            answer_text,
-            is_answered,
-            created_at,
-            transactions!inner(
-              client_name,
-              client_email,
-              expert_id
-            )
-          `,
-        )
-        .eq("transactions.expert_id", userId)
-        .eq("is_answered", false)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabaseAdmin
-        .from("sessions")
-        .select(
-          `
-            id,
-            scheduled_time,
-            meeting_link,
-            status,
-            created_at,
-            transactions!inner(
-              client_name,
-              client_email,
-              expert_id
-            )
-          `,
-        )
-        .eq("transactions.expert_id", userId)
-        .order("scheduled_time", { ascending: true })
-        .limit(5),
-      supabaseAdmin
-        .from("transactions")
-        .select(
-          `
-            id,
-            client_name,
-            amount_paid,
-            status,
-            created_at,
-            offering_type,
-            offerings(title)
-          `,
-        )
-        .eq("expert_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(8),
-      getRecentExpertReviews(userId, 4),
-      getExpertReviewSummary(userId),
-    ]);
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("offerings")
+      .select("id, type, title, description, price, is_active, file_url, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabaseAdmin
+      .from("transactions")
+      .select(
+        `id, client_name, client_email, offering_type, amount_paid, status, created_at, offering_id,
+         offerings(title)`,
+      )
+      .eq("expert_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabaseAdmin
+      .from("payouts")
+      .select("id, amount, status, created_at, korapay_reference")
+      .eq("expert_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabaseAdmin
+      .from("questions")
+      .select(
+        `id, question_text, is_answered, created_at,
+         transactions!inner(client_name, expert_id)`,
+      )
+      .eq("transactions.expert_id", userId)
+      .eq("is_answered", false)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabaseAdmin
+      .from("sessions")
+      .select(
+        `id, scheduled_time, status, created_at,
+         transactions!inner(client_name, expert_id)`,
+      )
+      .eq("transactions.expert_id", userId)
+      .order("scheduled_time", { ascending: true })
+      .limit(10),
+    getRecentExpertReviews(userId, 5),
+    getExpertReviewSummary(userId),
+  ]);
 
-  const normalizedQuestions = (questions ?? []).map((question) => {
-    const transaction = Array.isArray(question.transactions)
-      ? question.transactions[0]
-      : question.transactions;
-
+  // Flatten the offering title join onto each transaction row
+  const transactions = (rawTransactions ?? []).map((t) => {
+    const offering = Array.isArray(t.offerings) ? t.offerings[0] : t.offerings;
     return {
-      id: question.id,
-      question_text: question.question_text,
-      answer_text: question.answer_text,
-      is_answered: question.is_answered,
-      created_at: question.created_at,
-      client_name: transaction?.client_name ?? "Unknown",
-      client_email: transaction?.client_email ?? "",
+      ...t,
+      offering_title: offering?.title ?? null,
     };
   });
 
-  const normalizedSessions = (sessions ?? []).map((session) => {
-    const transaction = Array.isArray(session.transactions)
-      ? session.transactions[0]
-      : session.transactions;
-
+  // Flatten the transaction join onto questions / sessions
+  const mappedQuestions = (questions ?? []).map((q) => {
+    const tx = Array.isArray(q.transactions) ? q.transactions[0] : q.transactions;
     return {
-      id: session.id,
-      scheduled_time: session.scheduled_time,
-      meeting_link: session.meeting_link,
-      status: session.status,
-      created_at: session.created_at,
-      client_name: transaction?.client_name ?? "Unknown",
-      client_email: transaction?.client_email ?? "",
+      id: String(q.id),
+      question_text: String(q.question_text),
+      is_answered: Boolean(q.is_answered),
+      created_at: String(q.created_at),
+      client_name: tx?.client_name ? String(tx.client_name) : "Client",
     };
   });
 
-  const normalizedTransactions = (transactions ?? []).map((transaction) => {
-    const offering = Array.isArray(transaction.offerings)
-      ? transaction.offerings[0]
-      : transaction.offerings;
-
+  const mappedSessions = (sessions ?? []).map((s) => {
+    const tx = Array.isArray(s.transactions) ? s.transactions[0] : s.transactions;
     return {
-      ...transaction,
-      offering_title: offering?.title ?? "Untitled offering",
+      id: String(s.id),
+      scheduled_time: String(s.scheduled_time),
+      status: String(s.status),
+      created_at: String(s.created_at),
+      client_name: tx?.client_name ? String(tx.client_name) : "Client",
     };
   });
+
+  const daysRemaining = profile.subscription_expires_at
+    ? calculateDaysRemaining(profile.subscription_expires_at)
+    : null;
+
+  const totalEarned = transactions
+    .filter((t) => t.status === "success")
+    .reduce((sum, t) => sum + Number(t.amount_paid ?? 0), 0);
 
   return {
     profile,
-    questions: normalizedQuestions,
-    sessions: normalizedSessions,
-    transactions: normalizedTransactions,
+    offerings: offerings ?? [],
+    transactions,
+    questions: mappedQuestions,
+    sessions: mappedSessions,
+    payouts: payouts ?? [],
     reviews,
     reviewSummary,
-    daysRemaining: calculateDaysRemaining(profile.subscription_expires_at),
+    daysRemaining,
+    totalEarned,
   };
 }
 
@@ -228,7 +220,7 @@ export async function getPublicProfile(username: string) {
   const { data: expert } = await supabaseAdmin
     .from("users")
     .select(
-      "id, name, bio, profile_photo, subscription_status, subscription_plan, username, korapay_recipient_verified, bank_code, bank_account, account_name, trust_status, trust_flagged_at, trust_reason",
+      "id, name, username, bio, profile_photo, subscription_status, bank_code, bank_account, account_name, korapay_recipient_verified, trust_status",
     )
     .eq("username", username)
     .single();
@@ -298,7 +290,7 @@ const getMarketplaceSnapshot = unstable_cache(
     const { data } = await supabaseAdmin
       .from("offerings")
       .select(
-      `
+        `
           id,
           type,
           title,
@@ -514,17 +506,15 @@ export async function getBankDetailsPageData(userId: string) {
   let banks = [] as Awaited<ReturnType<typeof listNigerianBanks>>;
 
   try {
-    // Check if Korapay is configured
-    if (!process.env.KORAPAY_SECRET_KEY) {
-      console.error("KORAPAY_SECRET_KEY is not configured for bank list loading");
+    if (!process.env.FLW_SECRET_KEY) {
+      console.error("FLW_SECRET_KEY is not configured for bank list loading");
     } else {
       banks = await listNigerianBanks();
-      console.log(`Loaded ${banks.length} Nigerian banks`);
+      console.log(`Loaded ${banks.length} Nigerian banks from Flutterwave`);
     }
   } catch (error) {
-    console.error("Failed to load Korapay bank list:", error);
-    
-    // Log more specific error information
+    console.error("Failed to load Flutterwave bank list:", error);
+
     if (error instanceof Error) {
       console.error("Bank list error details:", {
         message: error.message,

@@ -6,7 +6,7 @@ import {
   syncSubscriptionStatus,
   validateRequired,
 } from "@/lib/auth";
-import { resolveNigerianBankAccount } from "@/lib/korapay";
+import { resolveNigerianBankAccount } from "@/lib/flutterwave";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -62,9 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     return apiResponse(
-      {
-        account,
-      },
+      { account },
       "Bank details saved successfully",
     );
   } catch (error) {

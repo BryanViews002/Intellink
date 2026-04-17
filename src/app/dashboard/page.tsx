@@ -85,7 +85,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <Link href="/pricing" className="button-gold-glow flex-shrink-0 px-8 py-4 text-center">
-                  {showFreeMonth && freeDays > 7 ? "Upgrade now" : dashboard.daysRemaining <= 3 ? "Renew now" : "Manage renewal"}
+                  {showFreeMonth && freeDays > 7 ? "Upgrade now" : (dashboard.daysRemaining ?? 99) <= 3 ? "Renew now" : "Manage renewal"}
                 </Link>
               </div>
             </div>

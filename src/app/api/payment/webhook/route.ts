@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 import { apiError, apiResponse, hasVerifiedBankDetails } from "@/lib/auth";
 import {
   createSubscriptionExpiry,
-  disburseKorapayPayout,
-  verifyKorapaySignature,
-} from "@/lib/korapay";
+  disburseFlutterwavePayout,
+  verifyFlutterwaveSignature,
+} from "@/lib/flutterwave";
 import {
   sendPayoutReceivedEmail,
   sendSubscriptionWelcomeEmail,
@@ -18,53 +18,69 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const signature =
-      request.headers.get("x-korapay-signature") ||
-      request.headers.get("X-Korapay-Signature");
 
-    console.log("Webhook received - signature present:", !!signature);
-    console.log("Webhook raw body:", rawBody.substring(0, 500));
+    // Flutterwave sends the secret hash directly in the "verifi-hash" header
+    const signature =
+      request.headers.get("verifi-hash") ||
+      request.headers.get("flutterwave-signature") ||
+      "";
+
+    console.log("FLW Webhook received - signature present:", !!signature);
+    console.log("FLW Webhook raw body:", rawBody.substring(0, 500));
+
+    if (!verifyFlutterwaveSignature(signature)) {
+      console.error("FLW Webhook signature verification failed");
+      return apiError("Invalid webhook signature", 401);
+    }
 
     const payload = JSON.parse(rawBody) as {
       event?: string;
       data?: {
+        id?: number;
+        tx_ref?: string;
         reference?: string;
-        payment_reference?: string;
         status?: string;
         amount?: number;
+        currency?: string;
       };
     };
 
-    // Korapay signature is calculated on the data object only
-    const dataString = JSON.stringify(payload.data);
-    console.log("Webhook data string for signature:", dataString.substring(0, 500));
+    console.log("FLW Webhook event:", payload.event);
 
-    if (!signature || !verifyKorapaySignature(signature, dataString)) {
-      console.error("Webhook signature verification failed");
-      return apiError("Invalid webhook signature", 401);
+    // ── TRANSFER (PAYOUT) EVENTS ───────────────────────────────────────────
+    if (payload.event === "transfer.completed") {
+      const payoutRef = payload.data?.reference;
+      const transferStatus = (payload.data?.status ?? "").toUpperCase();
+      console.log("Processing transfer.completed:", { payoutRef, transferStatus });
+      return handlePayoutTransferEvent(transferStatus, payoutRef);
     }
 
-    console.log("Webhook event:", payload.event);
-    const reference = payload.data?.payment_reference || payload.data?.reference;
-
-    console.log("Webhook reference:", reference);
-
-    if (payload.event === "transfer.success" || payload.event === "transfer.failed") {
-      return handlePayoutTransferEvent(payload.event, payload.data?.reference);
-    }
-
+    // ── FAILED CHARGE ──────────────────────────────────────────────────────
     if (payload.event === "charge.failed") {
-      console.log("Processing charge.failed:", reference);
-      return handleChargeFailed(reference);
+      const ref = payload.data?.tx_ref;
+      console.log("Processing charge.failed:", ref);
+      return handleChargeFailed(ref);
     }
 
-    if (payload.event !== "charge.success") {
-      console.log("Webhook event ignored:", payload.event);
+    // ── SUCCESSFUL CHARGE ──────────────────────────────────────────────────
+    if (payload.event !== "charge.completed") {
+      console.log("FLW Webhook event ignored:", payload.event);
       return apiResponse(null, "Event ignored");
     }
 
+    const chargeStatus = (payload.data?.status ?? "").toLowerCase();
+    const reference = payload.data?.tx_ref;
+
+    console.log("FLW charge.completed:", { reference, chargeStatus });
+
+    if (chargeStatus !== "successful") {
+      console.log("FLW charge not successful, status:", chargeStatus);
+      if (reference) await handleChargeFailed(reference);
+      return apiResponse(null, "Charge not successful");
+    }
+
     if (!reference) {
-      console.error("Webhook missing payment reference");
+      console.error("FLW Webhook missing tx_ref");
       return apiError("Missing payment reference");
     }
 
@@ -78,10 +94,10 @@ export async function POST(request: NextRequest) {
       return handleTransactionCharge(reference);
     }
 
-    console.log("Webhook reference type ignored:", reference);
+    console.log("FLW Webhook reference type ignored:", reference);
     return apiResponse(null, "Reference type ignored");
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("FLW Webhook error:", error);
     return apiError("Internal server error", 500);
   }
 }
@@ -94,7 +110,14 @@ async function handleSubscriptionCharge(reference: string) {
     .single();
 
   if (!subscription) {
+    console.error("Subscription not found for reference:", reference);
     return apiError("Subscription not found", 404);
+  }
+
+  // Idempotency: skip if already active
+  if (subscription.status === "active") {
+    console.log("Subscription already active, skipping:", reference);
+    return apiResponse({ reference, plan: subscription.plan }, "Subscription already active");
   }
 
   const expiresAt = createSubscriptionExpiry(subscription.plan);
@@ -134,10 +157,7 @@ async function handleSubscriptionCharge(reference: string) {
   }
 
   return apiResponse(
-    {
-      reference,
-      plan: subscription.plan,
-    },
+    { reference, plan: subscription.plan },
     "Subscription activated successfully",
   );
 }
@@ -149,51 +169,44 @@ async function handleTransactionCharge(reference: string) {
     return apiError("Transaction context missing", 404);
   }
 
-  // Initiate expert payout
-  const [{ data: expert }, { data: transaction }] = await Promise.all([
-    supabaseAdmin
-      .from("users")
-      .select(
-        "id, name, email, bank_code, bank_account, account_name, korapay_recipient_verified",
-      )
-      .eq(
-        "id",
-        (
-          await supabaseAdmin
-            .from("transactions")
-            .select("expert_id")
-            .eq("korapay_reference", reference)
-            .single()
-        ).data?.expert_id ?? "",
-      )
-      .single(),
-    supabaseAdmin
+  // Initiate expert payout if not already processed
+  if (!result.alreadyProcessed) {
+    const { data: txRow } = await supabaseAdmin
       .from("transactions")
-      .select("id, client_name, amount_paid, offering_id")
+      .select("id, expert_id, client_name, amount_paid, offering_id")
       .eq("korapay_reference", reference)
-      .single(),
-  ]);
-
-  if (expert && transaction && !result.alreadyProcessed) {
-    const { data: offering } = await supabaseAdmin
-      .from("offerings")
-      .select("title")
-      .eq("id", transaction.offering_id)
       .single();
 
-    await initiateExpertPayout({
-      transactionId: transaction.id,
-      expert,
-      transaction,
-      offeringTitle: offering?.title ?? "Expert offering",
-    });
+    if (txRow) {
+      const { data: expert } = await supabaseAdmin
+        .from("users")
+        .select("id, name, email, bank_code, bank_account, account_name, korapay_recipient_verified")
+        .eq("id", txRow.expert_id)
+        .single();
+
+      const { data: offering } = await supabaseAdmin
+        .from("offerings")
+        .select("title")
+        .eq("id", txRow.offering_id)
+        .single();
+
+      if (expert) {
+        await initiateExpertPayout({
+          transactionId: txRow.id,
+          expert,
+          transaction: {
+            id: txRow.id,
+            client_name: txRow.client_name,
+            amount_paid: txRow.amount_paid,
+          },
+          offeringTitle: offering?.title ?? "Expert offering",
+        });
+      }
+    }
   }
 
   return apiResponse(
-    {
-      reference,
-      transaction_id: result.transactionId,
-    },
+    { reference, transaction_id: result.transactionId },
     "Transaction processed successfully",
   );
 }
@@ -215,7 +228,6 @@ async function handleChargeFailed(reference: string | undefined) {
     if (error) {
       console.error("Failed to update subscription status on charge.failed:", error);
     }
-
     return apiResponse({ reference }, "Subscription charge failed");
   }
 
@@ -229,7 +241,6 @@ async function handleChargeFailed(reference: string | undefined) {
     if (error) {
       console.error("Failed to update transaction status on charge.failed:", error);
     }
-
     return apiResponse({ reference }, "Transaction charge failed");
   }
 
@@ -256,6 +267,7 @@ async function initiateExpertPayout(args: {
 }) {
   const payoutReference = `PAY_${args.transactionId}`;
 
+  // Check if payout already created (idempotency)
   const { data: existingPayout } = await supabaseAdmin
     .from("payouts")
     .select("id, status, korapay_reference")
@@ -263,6 +275,7 @@ async function initiateExpertPayout(args: {
     .maybeSingle();
 
   if (existingPayout) {
+    console.log("Payout already exists for transaction:", args.transactionId);
     return existingPayout;
   }
 
@@ -287,76 +300,73 @@ async function initiateExpertPayout(args: {
 
   if (!hasVerifiedBankDetails(args.expert)) {
     console.error(
-      `Expert ${args.expert.id} is missing verified bank details for payout ${payoutReference}.`,
+      `Expert ${args.expert.id} has no verified bank details. Payout ${payoutReference} marked failed.`,
     );
     return payout;
   }
 
-  const bankCode = args.expert.bank_code;
-  const bankAccount = args.expert.bank_account;
-  const accountName = args.expert.account_name;
-
-  if (!bankCode || !bankAccount || !accountName) {
-    return payout;
-  }
+  const { bank_code, bank_account, account_name, email, name } = {
+    bank_code: args.expert.bank_code!,
+    bank_account: args.expert.bank_account!,
+    account_name: args.expert.account_name!,
+    email: args.expert.email,
+    name: args.expert.name,
+  };
 
   try {
-    const payoutResponse = await disburseKorapayPayout({
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+
+    const payoutResponse = await disburseFlutterwavePayout({
       reference: payoutReference,
       amount: Number(args.transaction.amount_paid),
-      bankCode,
-      bankAccount,
-      accountName,
-      email: args.expert.email,
+      bankCode: bank_code,
+      bankAccount: bank_account,
+      accountName: account_name,
+      email,
       narration: `Intellink payout for ${args.offeringTitle}`,
-      metadata: {
-        transaction_id: args.transactionId,
-        expert_id: args.expert.id,
-      },
+      callbackUrl: `${BASE_URL}/api/payment/webhook`,
     });
 
+    // Flutterwave transfer is almost always immediately "NEW" or "PENDING"
+    // It will finalise via the transfer.completed webhook
     const payoutStatus =
-      payoutResponse.data?.status === "success" ? "success" : "pending";
+      payoutResponse.data?.status === "SUCCESSFUL" ? "success" : "pending";
 
     await supabaseAdmin
       .from("payouts")
-      .update({
-        status: payoutStatus,
-      })
+      .update({ status: payoutStatus })
       .eq("id", payout.id);
 
     if (payoutStatus === "success") {
       try {
         await sendPayoutReceivedEmail(
-          args.expert.email,
-          args.expert.name,
+          email,
+          name,
           formatCurrency(Number(args.transaction.amount_paid)),
           args.transaction.client_name,
         );
-      } catch (error) {
-        console.error("Immediate payout email failed:", error);
+      } catch (emailError) {
+        console.error("Immediate payout email failed:", emailError);
       }
     }
 
+    console.log("Flutterwave payout initiated:", {
+      reference: payoutReference,
+      status: payoutStatus,
+    });
+
     return payout;
   } catch (error) {
-    console.error("Korapay payout initiation failed:", error);
-    // Don't fail the payment - just mark payout as failed
+    console.error("Flutterwave payout initiation failed:", error);
     await supabaseAdmin
       .from("payouts")
-      .update({
-        status: "failed",
-      })
+      .update({ status: "failed" })
       .eq("id", payout.id);
-
     return payout;
   }
 }
 
-async function handlePayoutTransferEvent(
-  event: "transfer.success" | "transfer.failed",
-  reference?: string,
-) {
+async function handlePayoutTransferEvent(status: string, reference?: string) {
   if (!reference) {
     return apiError("Missing payout reference", 400);
   }
@@ -378,17 +388,16 @@ async function handlePayoutTransferEvent(
     .single();
 
   if (!payout) {
+    console.error("Payout not found for reference:", reference);
     return apiError("Payout not found", 404);
   }
 
-  const nextStatus = event === "transfer.success" ? "success" : "failed";
+  const nextStatus = status === "SUCCESSFUL" ? "success" : "failed";
   const shouldSendEmail = payout.status !== "success" && nextStatus === "success";
 
   await supabaseAdmin
     .from("payouts")
-    .update({
-      status: nextStatus,
-    })
+    .update({ status: nextStatus })
     .eq("id", payout.id);
 
   if (shouldSendEmail) {
@@ -411,11 +420,5 @@ async function handlePayoutTransferEvent(
     }
   }
 
-  return apiResponse(
-    {
-      reference,
-      status: nextStatus,
-    },
-    "Payout webhook processed successfully",
-  );
+  return apiResponse({ reference, status: nextStatus }, "Payout webhook processed");
 }

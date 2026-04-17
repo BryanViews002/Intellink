@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { apiError, apiResponse, requireAuthenticatedUser, validateRequired } from "@/lib/auth";
-import { buildSubscriptionCheckout, createSubscriptionExpiry, initializeKorapayPayment } from "@/lib/korapay";
+import { buildSubscriptionCheckout, createSubscriptionExpiry, initializeFlutterwavePayment } from "@/lib/flutterwave";
 import { supabaseAdmin } from "@/lib/supabase";
 import { SUBSCRIPTION_PLANS } from "@/lib/constants";
 import { type SubscriptionPlan } from "@/types";
@@ -48,9 +48,9 @@ export async function POST(request: NextRequest) {
       if (newExpires > freeExpires) {
         await supabaseAdmin
           .from("users")
-          .update({ 
+          .update({
             subscription_expires_at: newExpires.toISOString(),
-            subscription_plan: plan 
+            subscription_plan: plan,
           })
           .eq("id", user.id);
       }
@@ -65,16 +65,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Normal paid subscription flow
+    // Normal paid subscription flow — use Flutterwave
     const checkout = buildSubscriptionCheckout(plan, profile);
     const expiresAt = createSubscriptionExpiry(plan);
 
-    const payment = await initializeKorapayPayment({
+    const payment = await initializeFlutterwavePayment({
       amount: checkout.amount,
       reference: checkout.reference,
       customer: checkout.customer,
       redirectPath: checkout.redirectPath,
-      metadata: checkout.metadata,
+      meta: checkout.meta,
     });
 
     const { error: insertError } = await supabaseAdmin.from("subscriptions").insert({
@@ -94,12 +94,12 @@ export async function POST(request: NextRequest) {
     return apiResponse(
       {
         reference: checkout.reference,
-        checkout_url:
-          payment?.data?.checkout_url || payment?.data?.checkoutUrl || null,
+        // Flutterwave returns the checkout URL as data.link
+        checkout_url: payment?.data?.link ?? null,
         amount: checkout.amount,
         plan,
       },
-      "Subscription checkout initialized successfully",
+      "Subscription checkout initialized",
     );
   } catch (error) {
     console.error("Subscription initialize error:", error);
@@ -109,4 +109,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

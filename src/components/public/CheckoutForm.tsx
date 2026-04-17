@@ -162,7 +162,7 @@ export function CheckoutForm({ offering, expert }: CheckoutFormProps) {
         ) : null}
 
         <p className="text-sm leading-6 text-slate-500">
-          You will be redirected to Korapay to complete the payment securely.
+          You will be redirected to Flutterwave to complete the payment securely.
         </p>
 
         <div className="stack-actions">
